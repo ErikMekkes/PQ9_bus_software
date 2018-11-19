@@ -10,25 +10,31 @@ public class Main {
     private static ArrayList<String> codeLines;
 
     public static void main(String[] args) {
-        String SubSystemName = "TEST";
-        String HALFolderName = "HAL";
-
-        Path SubsFolder = Paths.get("./" + SubSystemName);
-        Path HALFolder = Paths.get("./" + SubSystemName + "/" + HALFolderName);
+        // Create folder structure
+        String dirName = "TEST";
+        String subDir1 = "HAL";
+        // Find the referenced location (relative to current)
+        Path SubsFolder = Paths.get("./" + dirName);
+        Path HALFolder = Paths.get("./" + dirName + "/" + subDir1);
+        // Try to make the directories
         try {
             Files.createDirectory(SubsFolder);
             Files.createDirectory(HALFolder);
-            codeLines = readFromFile("templates/fm.h");
-            removeTemplateComments(codeLines);
-            writeToFile(codeLines,"./" + SubSystemName + "/fm.h");
-            codeLines = readFromFile("templates/fm.c");
-            removeTemplateComments(codeLines);
-            writeToFile(codeLines,"./" + SubSystemName + "/fm.c");
         } catch(FileAlreadyExistsException e) {
             System.err.println("One of the files to create already exists!");
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        // Use fm.h template to generate a fm.h file, removing template comments
+        codeLines = readFromFile("templates/fm.h");
+        removeTemplateComments(codeLines);
+        writeToFile(codeLines,"./" + dirName + "/fm.h");
+
+        // Use fm.c template to generate a fm.c file, removing template comments
+        codeLines = readFromFile("templates/fm.c");
+        removeTemplateComments(codeLines);
+        writeToFile(codeLines,"./" + dirName + "/fm.c");
     }
 
     /**
