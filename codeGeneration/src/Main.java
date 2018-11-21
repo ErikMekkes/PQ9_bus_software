@@ -5,16 +5,40 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.Scanner;
+
+import parameter_ids.*;
 
 public class Main {
     private static ArrayList<String> codeLines;
 
+    // Create folder structure
+    private static String dirName = "TEST";
+    private static String subDir1 = "HAL";
+
     public static void main(String[] args) {
-        // Create folder structure
-        String dirName = "TEST";
-        String subDir1 = "HAL";
         // Find the referenced location (relative to current)
         Path SubsFolder = Paths.get("./" + dirName);
+        if (Files.exists(SubsFolder)) {
+            System.out.println("Subsystem output folder " + dirName + " exists!");
+            System.out.println("Overwrite existing " + dirName + " folder? (Yes)/(No)");
+            Scanner input = new Scanner(System.in);
+            String response = input.next();
+            while (!(response.equals("Yes") || response.equals("No"))) {
+                System.out.println("Answer not recognized, use 'Yes' or 'No'");
+                System.out.println("Overwrite existing " + dirName + " folder? (Yes)/(No)");
+                response = input.next();
+            }
+            switch (response){
+                case "No" :
+                    return;
+                case "Yes" :
+                    deleteDirectoryStream(SubsFolder);
+            }
+
+        }
         Path HALFolder = Paths.get("./" + dirName + "/" + subDir1);
         // Try to make the directories
         try {
@@ -26,6 +50,24 @@ public class Main {
             e.printStackTrace();
         }
 
+        generateParameterFiles();
+        generateFmFiles();
+
+        System.out.println("Finished generating " + dirName + "Subsystem!");
+    }
+
+    private static void deleteDirectoryStream(Path path) {
+        try {
+            Files.walk(path)
+                    .sorted(Comparator.reverseOrder())
+                    .map(Path::toFile)
+                    .forEach(File::delete);
+        } catch (IOException e) {
+            System.out.println("Error deleting " + dirName + " folder!");
+        }
+    }
+
+    private static void generateFmFiles() {
         // Use fm.h template to generate a fm.h file, removing template comments
         codeLines = readFromFile("templates/fm.h");
         removeTemplateComments(codeLines);
@@ -37,13 +79,63 @@ public class Main {
         writeToFile(codeLines,"./" + dirName + "/fm.c");
     }
 
+    private static void generateParameterFiles() {
+        // Use fm.c template to generate a fm.c file, removing template comments
+        codeLines = readFromFile("templates/parameters.h");
+        removeTemplateComments(codeLines);
+        writeToFile(codeLines,"./" + dirName + "/parameters.h");
+
+        // Use fm.c template to generate a fm.c file, removing template comments
+        codeLines = readFromFile("templates/parameters.c");
+        removeTemplateComments(codeLines);
+        processParameters(codeLines);
+        writeToFile(codeLines,"./" + dirName + "/parameters.c");
+    }
+
+    private static void processParameters(ArrayList<String> code) {
+        ArrayList<ParamID> params = new ArrayList<>();
+        ParamID SBSYS_sensor_loop = new SBSYS_sensor_loop_param_id_32();
+        params.add(SBSYS_sensor_loop);
+
+        //add set, get, init and struct code sections for each parameter.
+        params.forEach(param -> code.add(findLine("$setParams$",code),param.setterFunc()));
+        params.forEach(param -> code.add(findLine("$getParams$",code),param.getterFunc()));
+        params.forEach(param -> code.add(findLine("$initParams$",code),param.initFunc()));
+        params.forEach(param -> code.add(findLine("$mem_pool$",code),param.memPoolStruct()));
+    }
+
+    private static int findLine(String identifier, ArrayList<String> code) {
+        Iterator<String> itr = code.iterator();
+        int res = -1;
+        while (itr.hasNext()) {
+            res++;
+            String str = itr.next();
+            if (str.contains(identifier)) {
+                itr.remove();
+                break;
+            }
+        }
+        return res;
+    }
+
     /**
      * Removes template comments from the code. Template comments are identified as lines starting with '//<'.
      * @param code
      *          Code represented as a list of Strings.
      */
     private static void removeTemplateComments(ArrayList<String> code) {
-        code.removeIf(str -> str.length() > 2 && str.substring(0,3).equals("//<"));
+        if (null == code) {
+            return;
+        }
+
+        Iterator<String> itr = code.iterator();
+        while (itr.hasNext()) {
+            String str = itr.next();
+            String trimStr = str.trim();
+            if (trimStr.length() > 2 && trimStr.substring(0,3).equals("//<")) {
+                itr.remove();
+            }
+        }
     }
 
     /**
