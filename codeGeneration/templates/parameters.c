@@ -1,5 +1,6 @@
 //< This file is a template to be used by the subsystem code generator.
-//< Indicates a template comment, it will be skipped entirely when generating code.
+//< <- Indicates a template comment, template comments will be skipped entirely
+//< and will no longer be visible in the generated code.
 #include "parameters.h"
 // satellite parameter definitions
 #include "satellite.h"
@@ -9,33 +10,53 @@
 #include "packet_utilities.h"
 
 
-// mem_pool is a struct containing all the parameters used by this subsystem.
+/*
+ * Defines a mem_pool struct containing all the parameters that are required
+ * by this subsystem.
+ */
 struct parameters_memory_pool {
-	//< TODO: Include the required parameter ids & default values here
-	//< The rest of the file will be automatically generated when running the code generator
-	//< WARNING: The code generator should have a class for each parameter id
-	//<
-	//< Use the format: $param$ (descriptive name)_param_id_(datatype suffix) (default value)
-	//< Example: $param$ SBSYS_sensor_loop_param_id_32 100000
-	//< available data type suffixes are '_16' or '_32'
-	$param$ testing_2_param_id_16 0xCAFE;
-	$param$ testing_4_param_id_32 0xDEADBEEF;
-	$param$ SBSYS_sensor_loop_param_id_32 100000;
-	
+	//< This tag indicates mem_pool struct code should be generated here.
+	$mem_pool$
 } mem_pool;
 
 /*
- * Can be called to set all parameters of this subsystem to their default values.
+ * Can be called to (re)set all parameters of this subsystem to default values.
  */
 void init_parameters() {
-	$initLine$
+	//< This tag indicates init param code should be generated here.
+	$initParams$
 }
 
 /*
- * Returns the value of the requested pid parameter type.
- * pid: parameter to get
- * value: void pointer, used as
+ * Returns the current values of the requested parameter id. The pid argument
+ * defines the requested parameter, the *value, *buf and *size pointer
+ * arguments are used as output for the return values.
+ *
+ * pid : parameter id (input)
+ * *value : parameter value in it's original data type (output)
+ * *buf : value of parameter as a uint8_t representation (output)
+ * *size : size in bytes of the data type stored in *(*value) (output)
+ */
+void get_parameter(param_id pid, void *value, uint8_t *buf, uint16_t *size) {
+	switch (pid) {
+		//< This tag indicates get param code should be generated here
+		$getParams$
+		default :
+			*size = 0;
+	}
+}
+
+/*
  *
  */
-void get_parameter(param_id pid, void* value, uint8_t *buf, uint16_t *size) {
+bool set_parameter(param_id pid, void* value) {
+	bool res = true;
+	switch (pid) {
+		//< This tag indicates set param code should be generated here
+		$setParams$
+		default :
+			res = false;
+	}
+	
+	return res;
 }
