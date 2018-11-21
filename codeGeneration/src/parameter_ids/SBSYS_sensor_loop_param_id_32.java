@@ -9,6 +9,10 @@ public class SBSYS_sensor_loop_param_id_32 implements ParamID {
     private String name = paramIdName.substring(0,paramIdName.length()-12);
     private String baseIndent = "\t\t";
 
+    public SBSYS_sensor_loop_param_id_32() {
+
+    }
+
     public SBSYS_sensor_loop_param_id_32(String paramIdName, String defaultValue) {
         this.paramIdName = paramIdName;
         this.defaultValue = defaultValue;
