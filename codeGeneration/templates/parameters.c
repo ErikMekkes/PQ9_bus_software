@@ -15,6 +15,14 @@
  * by this subsystem.
  */
 struct parameters_memory_pool {
+	//< TODO: It's possible to define required parameter & default values here
+	//< The rest of the file will be automatically generated when running the code generator
+	//< WARNING: The code generator should have a class for each used parameter type
+	//<
+	//< Use the format: $param$ paramId (default value)
+	//< Example: $param$ SBSYS_sensor_loop_param_id_32 100000
+	$param$ SBSYS_sensor_loop_param_id 100000
+	$param$ testing_2_param_id 0xCAFE
 	//< This tag indicates mem_pool struct code should be generated here.
 	$mem_pool$
 } mem_pool;
@@ -47,7 +55,7 @@ void get_parameter(param_id pid, void *value, uint8_t *buf, uint16_t *size) {
 }
 
 /*
- *
+ * Updates the local value to the specified value for the specified parameter id.
  */
 bool set_parameter(param_id pid, void* value) {
 	bool res = true;
