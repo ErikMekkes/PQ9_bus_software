@@ -56,13 +56,14 @@ public class testing_2 implements ParamCode {
 	}
 
 	public String getterFunc() {
-		String baseIndent = "\t\t";
-		String func = baseIndent + "case " + param.idName + " :\n";
-		func += baseIndent + "\t*((" + param.dataType + "*)value) = mem_pool." + name + ";\n";
-		func += baseIndent + "\tcnv" + dType + "_8(mem_pool." + name + ", buf);\n";
-		func += baseIndent + "\t*size = " + dType/8 +";\n";
-		func += baseIndent + "\tbreak;";
-		return func;
+		LineBuilder lb = new LineBuilder("\t\t");
+		lb.add("case " + param.idName + " :");
+		lb.setIndent("\t\t\t");
+		lb.add("*((" + param.dataType + "*)value) = mem_pool." + name + ";");
+		lb.add("cnv" + dType + "_8(mem_pool." + name + ", " +	"buf);");
+		lb.add("*size = " + dType /8 +";");
+		lb.addIndentOnly("break;");
+		return lb.toString();
 	}
 
 	public String setterFunc() {

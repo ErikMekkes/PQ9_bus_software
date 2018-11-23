@@ -60,24 +60,25 @@ public class SBSYS_sensor_loop implements ParamCode {
 	}
 
 	public String getterFunc() {
-		String baseIndent = "\t\t";
-		String func = baseIndent + "case " + param.idName + " :\n";
-		func += baseIndent + "\t*((" + param.dataType + "*)value) = mem_pool." + name + ";\n";
-		func += baseIndent + "\tcnv" + dType + "_8(mem_pool." + name + ", buf);\n";
-		func += baseIndent + "\t*size = " + dType/8 +";\n";
-		func += baseIndent + "\tbreak;";
-		return func;
+		LineBuilder lb = new LineBuilder("\t\t");
+		lb.add("case " + param.idName + " :");
+		lb.setIndent("\t\t\t");
+		lb.add("*((" + param.dataType + "*)value) = mem_pool." + name + ";");
+		lb.add("cnv" + dType + "_8(mem_pool." + name + ", " +	"buf);");
+		lb.add("*size = " + dType /8 +";");
+		lb.addIndentOnly("break;");
+		return lb.toString();
 	}
 
 	public String setterFunc() {
-		String baseIndent = "\t\t";
-		String func = baseIndent + "case " + param.idName + " :\n";
-		func += baseIndent + "\tuint8_t *buf;\n";
-		func += baseIndent + "\tbuf = (uint8_t*)value;\n";
-		func += baseIndent + "\tcnv8_" + dType + "LE(&buf[0], &mem_pool." + name +
-				" );\n";
-		func += baseIndent + "\tbreak;";
-		return func;
+		LineBuilder lb = new LineBuilder("\t\t");
+		lb.add("case " + param.idName + " :");
+		lb.setIndent("\t\t\t");
+		lb.add("uint8_t *buf;");
+		lb.add("buf = (uint8_t*)value;");
+		lb.add("cnv8_" + dType + "LE(&buf[0], &mem_pool." + name + ");");
+		lb.addIndentOnly("break;");
+		return lb.toString();
 	}
 }
 
