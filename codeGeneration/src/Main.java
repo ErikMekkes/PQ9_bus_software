@@ -32,13 +32,13 @@ public class Main {
 		Path SubsFolder = Paths.get("./" + dirName);
 		if (Files.exists(SubsFolder)) {
 			System.out.println("Subsystem output folder " + dirName + " exists!");
-			System.out.println(
-							"Overwrite existing " + dirName + " folder? (Yes)/(No)");
+			System.out.print(
+							"Overwrite existing " + dirName + " folder? (Yes)/(No) : ");
 			String response = input.next();
 			while (!(response.equals("Yes") || response.equals("No"))) {
 				System.out.println("Answer not recognized, use 'Yes' or 'No'");
-				System.out.println(
-								"Overwrite existing " + dirName + " folder? (Yes)/(No)");
+				System.out.print(
+								"Overwrite existing " + dirName + " folder? (Yes)/(No) : ");
 				response = input.next();
 			}
 			switch (response){
@@ -64,10 +64,9 @@ public class Main {
 		generateFmFiles();
 
 		System.out.println(
-						"Succesfully finished generating " + dirName + " Subsystem!");
-		System.out.println("Please do check the output files in ./" + dirName);
-		System.out.println(
-						"And take any possible warnings provided above into account");
+						"\nSuccesfully finished generating " + dirName + " Subsystem!");
+		System.out.println("Please do check the output files in ./" + dirName +
+						"and take any possible warnings provided above into account");
 	}
 
 	private static void deleteDirectoryStream(Path path) {
