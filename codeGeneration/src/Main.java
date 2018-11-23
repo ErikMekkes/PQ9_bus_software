@@ -121,6 +121,9 @@ public class Main {
 		params.forEach(param -> code.add(initParams, param.initFunc()));
 		int mem_pool = findLine("$mem_pool$", code);
 		params.forEach(param -> code.add(mem_pool, param.memPoolStruct()));
+		// miscellaneous subsystem specific code
+		int sub_specific = findLine("$sub_specific$", code);
+		params.forEach(param -> code.add(sub_specific, param.subSpecific()));
 	}
 
 	private static int findLine(String identifier, ArrayList<String> code) {

@@ -9,6 +9,7 @@
 // contains utility functions for conversion between parameter data types.
 #include "packet_utilities.h"
 
+$sub_specific$
 
 /*
  * Defines a mem_pool struct containing all the parameters that are required
