@@ -23,6 +23,8 @@ struct parameters_memory_pool {
 	//< Example: $param$ SBSYS_sensor_loop_param_id_32 100000
 	$param$ SBSYS_sensor_loop_param_id 100000
 	$param$ testing_2_param_id 0xCAFE
+	$param$ testing_4_param_id 0xDEADBEEF
+	$param$ random_unfindable thing
 	//< This tag indicates mem_pool struct code should be generated here.
 	$mem_pool$
 } mem_pool;

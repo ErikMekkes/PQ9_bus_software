@@ -1,6 +1,13 @@
 package parameter_ids;
 
-public interface ParamId {
+/**
+ * This interface defines code sections, a parameter code class must
+ * provide a function that generates the required code for each section.
+ *
+ * If a parameter is not used for a specific code section, it must return an
+ * empty string for that function.
+ */
+public interface ParamCode {
 	// Generates the code for the mem_pool struct
 	public String memPoolStruct();
 
@@ -12,10 +19,4 @@ public interface ParamId {
 
 	// Generates the code for the set_parameter function
 	public String setterFunc();
-
-	// Updates the paramIDName
-	public void setParamIdName(String idName);
-
-	// Updates the defaultValue
-	public void setDefaultValue(String dValue);
 }

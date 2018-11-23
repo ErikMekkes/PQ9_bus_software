@@ -23,12 +23,14 @@ public class Main {
 		Path SubsFolder = Paths.get("./" + dirName);
 		if (Files.exists(SubsFolder)) {
 			System.out.println("Subsystem output folder " + dirName + " exists!");
-			System.out.println("Overwrite existing " + dirName + " folder? (Yes)/(No)");
+			System.out.println(
+							"Overwrite existing " + dirName + " folder? (Yes)/(No)");
 			Scanner input = new Scanner(System.in);
 			String response = input.next();
 			while (!(response.equals("Yes") || response.equals("No"))) {
 				System.out.println("Answer not recognized, use 'Yes' or 'No'");
-				System.out.println("Overwrite existing " + dirName + " folder? (Yes)/(No)");
+				System.out.println(
+								"Overwrite existing " + dirName + " folder? (Yes)/(No)");
 				response = input.next();
 			}
 			switch (response){
@@ -93,13 +95,13 @@ public class Main {
 	}
 
 	private static void processParameters(ArrayList<String> code) {
-		ArrayList<ParamId> params = new ArrayList<>();
+		ArrayList<ParamCode> params = new ArrayList<>();
 		findParams(code, params);
-		//ParamId SBSYS_sensor_loop = new SBSYS_sensor_loop_param_id();
+		//ParamCode SBSYS_sensor_loop = new SBSYS_sensor_loop();
 		//params.add(SBSYS_sensor_loop);
 		
+		//add set, get, init and mem_pool code sections for each parameter.
 		int setParams = findLine("$setParams$", code);
-		//add set, get, init and struct code sections for each parameter.
 		params.forEach(param -> code.add(setParams, param.setterFunc()));
 		int getParams = findLine("$getParams$", code);
 		params.forEach(param -> code.add(getParams, param.getterFunc()));
@@ -124,7 +126,7 @@ public class Main {
 	}
 
 	private static void findParams(ArrayList<String> code,
-	                               ArrayList<ParamId> params) {
+	                               ArrayList<ParamCode> params) {
 		// null check
 		if (null == code || null == params) {
 			return;
@@ -138,8 +140,11 @@ public class Main {
 				// remove leading & trailing whitespace, split on spaces
 				String trim = str.trim();
 				String[] parts = trim.split(" ");
-				// make param object with paramId and defaultValue parts.
-				params.add(findParamId(parts[1], parts[2]));
+				// find class describing how to generate code for this param
+				ParamCode p = findParamCode(parts[1], parts[2]);
+				if (null != p) {
+					params.add(p);
+				}
 				// remove the tag line from code output
 				itr.remove();
 			}
@@ -155,19 +160,17 @@ public class Main {
 	 * @param defaultValue
 	 *          String representation of the default value.
 	 * @return
-	 *          a ParamId object representing the specified parameter id.
+	 *          a ParamCode object representing the specified parameter id.
 	 */
-	private static ParamId findParamId(String paramId, String defaultValue) {
+	private static ParamCode findParamCode(String paramId, String defaultValue) {
 	    //TODO: wil get ugly with more params, make dictionary or other lookup
 		switch (paramId) {
-			case "SBSYS_sensor_loop_param_id" :
-				return new SBSYS_sensor_loop_param_id(
-						paramId,
-						defaultValue);
-			case "testing_2_param_id" :
-				return new testing_2_param_id(
-						paramId,
-						defaultValue);
+			case ParamDefaults.SBSYS_sensor_loop_param_id :
+				return new SBSYS_sensor_loop();
+			case ParamDefaults.testing_2_param_id :
+				return new testing_2();
+			case ParamDefaults.testing_4_param_id :
+				return new testing_4();
 			default :
 				return null;
 		}
