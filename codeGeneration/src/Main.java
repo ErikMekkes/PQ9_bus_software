@@ -19,13 +19,21 @@ public class Main {
 	private static String subDir1 = "HAL";
 
 	public static void main(String[] args) {
+		Scanner input = new Scanner(System.in);
+		System.out.println(
+						"This is the PQ9_bus_software subsystem code generator!\n");
+		System.out.println(
+						"This program will automatically generate new subsystem software" +
+						"based on the templates provided in ./templates\n");
+		System.out.print("Please enter a name for the subsystem to generate: ");
+		dirName = input.next();
+		
 		// Find the referenced location (relative to current)
 		Path SubsFolder = Paths.get("./" + dirName);
 		if (Files.exists(SubsFolder)) {
 			System.out.println("Subsystem output folder " + dirName + " exists!");
 			System.out.println(
 							"Overwrite existing " + dirName + " folder? (Yes)/(No)");
-			Scanner input = new Scanner(System.in);
 			String response = input.next();
 			while (!(response.equals("Yes") || response.equals("No"))) {
 				System.out.println("Answer not recognized, use 'Yes' or 'No'");
@@ -55,7 +63,11 @@ public class Main {
 		generateParameterFiles();
 		generateFmFiles();
 
-		System.out.println("Finished generating " + dirName + "Subsystem!");
+		System.out.println(
+						"Succesfully finished generating " + dirName + " Subsystem!");
+		System.out.println("Please do check the output files in ./" + dirName);
+		System.out.println(
+						"And take any possible warnings provided above into account");
 	}
 
 	private static void deleteDirectoryStream(Path path) {
@@ -140,8 +152,22 @@ public class Main {
 				// remove leading & trailing whitespace, split on spaces
 				String trim = str.trim();
 				String[] parts = trim.split(" ");
+				String paramId = "";
+				String defaultValue = "";
 				// find class describing how to generate code for this param
-				ParamCode p = findParamCode(parts[1], parts[2]);
+				if (1 == parts.length) {
+					System.err.println("Warning: Empty $param$ skipped from template!");
+					continue;
+				} else if (3 > parts.length) {
+					paramId = parts[1];
+					defaultValue = "default";
+					System.err.println("Warning: defaults not specified! " +
+									"Using code generation defaults for " + paramId + "!");
+				} else {
+					paramId = parts[1];
+					defaultValue = parts[2];
+				}
+				ParamCode p = findParamCode(paramId);
 				if (null != p) {
 					params.add(p);
 				} else {
@@ -159,12 +185,10 @@ public class Main {
 	 *
 	 * @param paramId
 	 *          String identifying a paramId.
-	 * @param defaultValue
-	 *          String representation of the default value.
 	 * @return
 	 *          a ParamCode object representing the specified parameter id.
 	 */
-	private static ParamCode findParamCode(String paramId, String defaultValue) {
+	private static ParamCode findParamCode(String paramId) {
 	    //TODO: wil get ugly with more params, make dictionary or other lookup
 		switch (paramId) {
 			case ParamDefaults.SBSYS_sensor_loop_param_id :
