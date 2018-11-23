@@ -68,6 +68,10 @@ public class testing_2 implements ParamCode {
 	public String setterFunc() {
 		return null;
 	}
+	
+	public String subSpecific() {
+		return null;
+	}
 }
 
 

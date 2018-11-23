@@ -54,6 +54,10 @@ public class SBSYS_sensor_loop implements ParamCode {
 	public String initFunc() {
 		return "\tmem_pool." + name + " = " + param.defaultValue + ";";
 	}
+	
+	public String subSpecific() {
+		return null;
+	}
 
 	public String getterFunc() {
 		String baseIndent = "\t\t";

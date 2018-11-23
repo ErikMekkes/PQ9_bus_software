@@ -19,4 +19,7 @@ public interface ParamCode {
 
 	// Generates the code for the set_parameter function
 	public String setterFunc();
+	
+	// Generate miscellaneous subsystem specific code
+	public String subSpecific();
 }
