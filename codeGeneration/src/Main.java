@@ -144,6 +144,8 @@ public class Main {
 				ParamCode p = findParamCode(parts[1], parts[2]);
 				if (null != p) {
 					params.add(p);
+				} else {
+					System.err.println("Parameter class " + parts[1] + " not found!");
 				}
 				// remove the tag line from code output
 				itr.remove();
