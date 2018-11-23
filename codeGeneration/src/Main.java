@@ -200,6 +200,12 @@ public class Main {
 				return new testing_2();
 			case ParamDefaults.testing_4_param_id :
 				return new testing_4();
+			case ParamDefaults.adb_deb_param_id :
+				return new adb_deb();
+			case ParamDefaults.SBSYS_reset_cmd_int_wdg_param_id :
+				return new SBSYS_reset_cmd_int_wdg();
+			case ParamDefaults.SBSYS_reset_clr_int_wdg_param_id :
+				return new SBSYS_reset_clr_int_wdg();
 			default :
 				return null;
 		}
