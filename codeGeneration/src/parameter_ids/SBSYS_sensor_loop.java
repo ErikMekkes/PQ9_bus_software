@@ -5,7 +5,7 @@ package parameter_ids;
  * Advised not to modify the constructors, default values can instead be
  * edited in ParamDefaults.java
  */
-public class SBSYS_sensor_loop implements ParamCode {
+public class SBSYS_sensor_loop extends ParamCode {
 	// Parameter representation.
 	private Param param;
 	// Declare commonly used code parts.
@@ -13,25 +13,14 @@ public class SBSYS_sensor_loop implements ParamCode {
 	private String name;
 	
 	/**
-	 * Constructor, creates a testing_4 parameter with default values.
+	 * Creates a code generator object for this parameter class, uses specified
+	 * values for code generation.
+	 * @param param
+	 *      Parameter values for which specific code is generated
 	 */
-	public SBSYS_sensor_loop() {
-		param = ParamDefaults.SBSYS_sensor_loop;
-		commonFormats();
-	}
-	
-	/**
-	 * Constructor, creates a testing_4 parameter with the specified values:
-	 * @param idName
-	 *      Parameter global identifier name.
-	 * @param dataType
-	 *      Parameter data type.
-	 * @param defaultValue
-	 *      Parameter default value.
-	 */
-	public SBSYS_sensor_loop(int enumValue, String idName, String dataType,
-	                         String defaultValue) {
-		param = new Param(enumValue, idName, dataType, defaultValue);
+	public SBSYS_sensor_loop(Param param) {
+		super(param);
+		this.param = super.getParam();
 		commonFormats();
 	}
 	
@@ -55,7 +44,7 @@ public class SBSYS_sensor_loop implements ParamCode {
 		return "\tmem_pool." + name + " = " + param.defaultValue + ";";
 	}
 	
-	public String subSpecific() {
+	public String parSpecific() {
 		return null;
 	}
 

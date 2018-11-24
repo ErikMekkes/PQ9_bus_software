@@ -1,25 +1,47 @@
 package parameter_ids;
 
 /**
- * This interface defines code sections, a parameter code class must
+ * This class defines code generation sections, a parameter code class must
  * provide a function that generates the required code for each section.
  *
- * If a parameter is not used for a specific code section, it must return an
- * empty string for that function.
+ * If a specific code section does not need to be generated the function must
+ * still be implemented, but it may simply return null.
  */
-public interface ParamCode {
+public abstract class ParamCode {
+	// Parameter representation.
+	private Param param;
+	
+	/**
+	 * Creates a code generator object for this parameter class, uses specified
+	 * values for code generation.
+	 * @param param
+	 *      Parameter values for which specific code is generated
+	 */
+	ParamCode(Param param) {
+		this.param = param;
+	}
+	
 	// Generates the code for the mem_pool struct
-	public String memPoolStruct();
+	public abstract String memPoolStruct();
 
 	// Generates the code for the init_parameters function
-	public String initFunc();
+	public abstract String initFunc();
 
 	// Generates the code for the get_parameter function
-	public String getterFunc();
+	public abstract String getterFunc();
 
 	// Generates the code for the set_parameter function
-	public String setterFunc();
+	public abstract String setterFunc();
 	
-	// Generate miscellaneous subsystem specific code
-	public String subSpecific();
+	// Generate miscellaneous parameter specific code
+	public abstract String parSpecific();
+	
+	/**
+	 * Returns the parameter values used by this code generator class.
+	 * @return
+	 *      Parameter representation of values used by this code generator class.
+	 */
+	public Param getParam() {
+		return param;
+	}
 }

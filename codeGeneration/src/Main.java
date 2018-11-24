@@ -4,21 +4,19 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.Scanner;
+import java.util.*;
 
 import parameter_ids.*;
 
 public class Main {
-	private static ArrayList<String> codeLines;
-
-	// Create folder structure
+	// Default directory names
 	private static String dirName = "TEST";
-	private static String subDir1 = "HAL";
+	private static final String HAL_SUBDIR = "HAL";
+	// Map of code generation classes for each parameter
+	private static Map<String, ParamCode> paramCodeGeneration;
 
 	public static void main(String[] args) {
+		// Prompt user for subsystem name
 		Scanner input = new Scanner(System.in);
 		System.out.println(
 						"This is the PQ9_bus_software subsystem code generator!\n");
@@ -30,26 +28,30 @@ public class Main {
 		
 		// Find the referenced location (relative to current)
 		Path SubsFolder = Paths.get("./" + dirName);
+		// Prompt user for overwriting existing directory if present
 		if (Files.exists(SubsFolder)) {
 			System.out.println("Subsystem output folder " + dirName + " exists!");
 			System.out.print(
 							"Overwrite existing " + dirName + " folder? (Yes)/(No) : ");
 			String response = input.next();
+			// Keep asking until user enters something sensible
 			while (!(response.equals("Yes") || response.equals("No"))) {
 				System.out.println("Answer not recognized, use 'Yes' or 'No'");
 				System.out.print(
 								"Overwrite existing " + dirName + " folder? (Yes)/(No) : ");
 				response = input.next();
 			}
+			// Either exit or delete existing folder and continue
 			switch (response){
 				case "No" :
 					return;
 				case "Yes" :
 					deleteDirectoryStream(SubsFolder);
 			}
-
 		}
-		Path HALFolder = Paths.get("./" + dirName + "/" + subDir1);
+		
+		// Find subdirectory location
+		Path HALFolder = Paths.get("./" + dirName + "/" + HAL_SUBDIR);
 		// Try to make the directories
 		try {
 			Files.createDirectory(SubsFolder);
@@ -60,9 +62,14 @@ public class Main {
 			e.printStackTrace();
 		}
 
+		// load default parameter code generation classes
+		paramCodeGeneration = ParamDefaults.mapDefaultParamCodes();
+		
+		// Start generating files
 		generateParameterFiles();
 		generateFmFiles();
-
+		
+		// Indicate ending for user.
 		System.out.println(
 						"\nSuccesfully finished generating " + dirName + " Subsystem!");
 		System.out.println("Please do check the output files in ./" + dirName +
@@ -81,6 +88,7 @@ public class Main {
 	}
 
 	private static void generateFmFiles() {
+		ArrayList<String> codeLines;
 		// Use fm.h template to generate a fm.h file, removing template comments
 		codeLines = readFromFile("templates/fm.h");
 		removeTemplateComments(codeLines);
@@ -93,6 +101,7 @@ public class Main {
 	}
 
 	private static void generateParameterFiles() {
+		ArrayList<String> codeLines;
 		// Use fm.c template to generate a fm.c file, removing template comments
 		codeLines = readFromFile("templates/parameters.h");
 		removeTemplateComments(codeLines);
@@ -108,8 +117,6 @@ public class Main {
 	private static void processParameters(ArrayList<String> code) {
 		ArrayList<ParamCode> params = new ArrayList<>();
 		findParams(code, params);
-		//ParamCode SBSYS_sensor_loop = new SBSYS_sensor_loop();
-		//params.add(SBSYS_sensor_loop);
 		
 		//add set, get, init and mem_pool code sections for each parameter.
 		int setParams = findLine("$setParams$", code);
@@ -120,11 +127,22 @@ public class Main {
 		params.forEach(param -> code.add(initParams, param.initFunc()));
 		int mem_pool = findLine("$mem_pool$", code);
 		params.forEach(param -> code.add(mem_pool, param.memPoolStruct()));
-		// miscellaneous subsystem specific code
-		int sub_specific = findLine("$sub_specific$", code);
-		params.forEach(param -> code.add(sub_specific, param.subSpecific()));
+		// miscellaneous parameter specific code
+		int par_specific = findLine("$par_specific$", code);
+		params.forEach(param -> code.add(par_specific, param.parSpecific()));
 	}
-
+	
+	/**
+	 * Attempts to find a line containing the specified identifier String.
+	 * Returns the linenumber of first occurrence if found, return -1 otherwise.
+	 *
+	 * @param identifier
+	 *      String to look for in specified code.
+	 * @param code
+	 *      List of code lines to look in.
+	 * @return
+	 *      Line Number, first occurrence of identifier in list of code lines.
+	 */
 	private static int findLine(String identifier, ArrayList<String> code) {
 		Iterator<String> itr = code.iterator();
 		int res = -1;
@@ -159,6 +177,7 @@ public class Main {
 				// find class describing how to generate code for this param
 				if (1 == parts.length) {
 					System.err.println("Warning: Empty $param$ skipped from template!");
+					itr.remove();
 					continue;
 				} else if (3 > parts.length) {
 					paramId = parts[1];
@@ -169,7 +188,7 @@ public class Main {
 					paramId = parts[1];
 					defaultValue = parts[2];
 				}
-				ParamCode p = findParamCode(paramId);
+				ParamCode p = paramCodeGeneration.get(paramId);
 				if (null != p) {
 					params.add(p);
 				} else {
@@ -178,35 +197,6 @@ public class Main {
 				// remove the tag line from code output
 				itr.remove();
 			}
-		}
-	}
-
-	/**
-	 * Finds the correct object type for a given paramId, creates an object of
-	 * this type, assigns it the specified default value and returns it.
-	 *
-	 * @param paramId
-	 *          String identifying a paramId.
-	 * @return
-	 *          a ParamCode object representing the specified parameter id.
-	 */
-	private static ParamCode findParamCode(String paramId) {
-	    //TODO: wil get ugly with more params, make dictionary or other lookup
-		switch (paramId) {
-			case ParamDefaults.SBSYS_sensor_loop_param_id :
-				return new SBSYS_sensor_loop();
-			case ParamDefaults.testing_2_param_id :
-				return new testing_2();
-			case ParamDefaults.testing_4_param_id :
-				return new testing_4();
-			case ParamDefaults.adb_deb_param_id :
-				return new adb_deb();
-			case ParamDefaults.SBSYS_reset_cmd_int_wdg_param_id :
-				return new SBSYS_reset_cmd_int_wdg();
-			case ParamDefaults.SBSYS_reset_clr_int_wdg_param_id :
-				return new SBSYS_reset_clr_int_wdg();
-			default :
-				return null;
 		}
 	}
 
@@ -268,9 +258,9 @@ public class Main {
 	/**
 	 * Writes the specified list of Strings to a file as separate lines.
 	 * @param code
-	 *          ArrayList of Strings to write to file.
+	 *      ArrayList of Strings to write to file.
 	 * @param fileName
-	 *
+	 *      File path to write to.
 	 */
 	private static void writeToFile(ArrayList<String> code, String fileName) {
 		// Find the referenced location, try to open with BufferedReader

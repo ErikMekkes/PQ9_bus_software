@@ -5,29 +5,19 @@ package parameter_ids;
  * Advised not to modify the constructors, default values can instead be
  * edited in ParamDefaults.java
  */
-public class adb_deb implements ParamCode {
+public class adb_deb extends ParamCode {
 	// Parameter representation.
 	private Param param;
 	
 	/**
-	 * Constructor, creates a testing_4 parameter with default values.
+	 * Creates a code generator object for this parameter class, uses specified
+	 * values for code generation.
+	 * @param param
+	 *      Parameter values for which specific code is generated
 	 */
-	public adb_deb() {
-		param = ParamDefaults.adb_deb;
-	}
-	
-	/**
-	 * Constructor, creates a testing_4 parameter with the specified values:
-	 * @param idName
-	 *      Parameter global identifier name.
-	 * @param dataType
-	 *      Parameter data type.
-	 * @param defaultValue
-	 *      Parameter default value.
-	 */
-	public adb_deb(int enumValue, String idName, String dataType,
-	               String defaultValue) {
-		param = new Param(enumValue, idName, dataType, defaultValue);
+	public adb_deb(Param param) {
+		super(param);
+		this.param = super.getParam();
 	}
 
 	public String memPoolStruct() {
@@ -63,7 +53,7 @@ public class adb_deb implements ParamCode {
 		return lb.toString();
 	}
 	
-	public String subSpecific() {
+	public String parSpecific() {
 		LineBuilder lb = new LineBuilder();
 		lb.add("uint8_t burn_sw_num;");
 		lb.add("uint8_t burn_feedback;");
