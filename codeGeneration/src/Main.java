@@ -13,7 +13,7 @@ public class Main {
 	private static String dirName = "TEST";
 	private static final String HAL_SUBDIR = "HAL";
 	// Map of code generation classes for each parameter
-	private static Map<String, ParamCode> paramCodeGeneration;
+	private static Map<String, Param> paramCodeGeneration;
 
 	public static void main(String[] args) {
 		// Prompt user for subsystem name
@@ -174,26 +174,89 @@ public class Main {
 				String[] parts = trim.split(" ");
 				String paramId = "";
 				String defaultValue = "";
+				String dataType = "";
+				Param defaults = null;
+				int enumValue = -1;
 				// find class describing how to generate code for this param
 				if (1 == parts.length) {
+					// $param$
 					System.err.println("Warning: Empty $param$ skipped from template!");
+					// skip this one
 					itr.remove();
 					continue;
-				} else if (3 > parts.length) {
+				}
+				if (1 < parts.length) {
+					// load default values for parameter
 					paramId = parts[1];
-					defaultValue = "default";
-					System.err.println("Warning: defaults not specified! " +
+					defaults = paramCodeGeneration.get(paramId);
+					if (null == defaults) {
+						System.err.println("Parameter class " + parts[1] + " not found!" +
+										"parameter not included!");
+						// skip this one
+						itr.remove();
+						continue;
+					} else {
+						enumValue = defaults.enumValue;
+						dataType = defaults.dataType;
+						defaultValue = defaults.defaultValue;
+					}
+				}
+				if (2 == parts.length) {
+					// $param$ some_name
+					System.err.println("Warning: default not specified! " +
 									"Using code generation defaults for " + paramId + "!");
-				} else {
-					paramId = parts[1];
-					defaultValue = parts[2];
+				} else if (3 == parts.length) {
+					// $param$ some_name some_value
+					if (!parts[2].equals("default")) {
+						defaultValue = parts[2];
+					}
+				} else if (4 == parts.length) {
+					// $param$ some_name some_value some_type
+					if (!parts[2].equals("default")) {
+						defaultValue = parts[2];
+					}
+					if (!parts[3].equals("default")) {
+						dataType = parts[3];
+					}
+				} else if (5 == parts.length) {
+					// $param$ some_name some_value some_type some_number
+					if (!parts[2].equals("default")) {
+						defaultValue = parts[2];
+					}
+					if (!parts[3].equals("default")) {
+						dataType = parts[3];
+					}
+					if (!parts[4].equals("default")) {
+						try {
+							enumValue = Integer.parseInt(parts[4]);
+						} catch (NumberFormatException e) {
+							System.err.println("Error: Enum value for " + paramId + " is not " +
+											"a number! parameter not included!");
+						}
+					}
+				} else if (5 < parts.length) {
+					// Even more input specified...
+					// $param$ some_name some_value some_type some_number x x x x x x
+					if (!parts[2].equals("default")) {
+						defaultValue = parts[2];
+					}
+					if (!parts[3].equals("default")) {
+						dataType = parts[3];
+					}
+					if (!parts[4].equals("default")) {
+						try {
+							enumValue = Integer.parseInt(parts[4]);
+						} catch (NumberFormatException e) {
+							System.err.println("Error: Enum value for " + paramId + " is not " +
+											"a number! parameter not included!");
+						}
+					}
+					System.err.println("Warning: Excessive input for " + paramId + " " +
+									" parameters beyond enumValue ignored");
 				}
-				ParamCode p = paramCodeGeneration.get(paramId);
-				if (null != p) {
-					params.add(p);
-				} else {
-					System.err.println("Parameter class " + parts[1] + " not found!");
-				}
+				Param newParam = new Param(enumValue, paramId, dataType, defaultValue);
+				ParamCode par = ParamDefaults.getCodeGeneratorClass(newParam);
+				params.add(par);
 				// remove the tag line from code output
 				itr.remove();
 			}

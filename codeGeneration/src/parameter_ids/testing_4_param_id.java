@@ -5,7 +5,7 @@ package parameter_ids;
  * Advised not to modify the constructors, default values can instead be
  * edited in ParamDefaults.java
  */
-public class testing_2 extends ParamCode {
+public class testing_4_param_id extends ParamCode {
 	// Parameter representation.
 	private Param param;
 	// Declare commonly used code parts.
@@ -18,7 +18,7 @@ public class testing_2 extends ParamCode {
 	 * @param param
 	 *      Parameter values for which specific code is generated
 	 */
-	public testing_2(Param param) {
+	public testing_4_param_id(Param param) {
 		super(param);
 		this.param = super.getParam();
 		commonFormats();

@@ -5,7 +5,7 @@ package parameter_ids;
  * Advised not to modify the constructors, default values can instead be
  * edited in ParamDefaults.java
  */
-public class SBSYS_reset_clr_int_wdg extends ParamCode {
+public class SBSYS_reset_cmd_int_wdg_param_id extends ParamCode {
 	// Parameter representation.
 	private Param param;
 	
@@ -15,7 +15,7 @@ public class SBSYS_reset_clr_int_wdg extends ParamCode {
 	 * @param param
 	 *      Parameter values for which specific code is generated
 	 */
-	public SBSYS_reset_clr_int_wdg(Param param) {
+	public SBSYS_reset_cmd_int_wdg_param_id(Param param) {
 		super(param);
 		this.param = super.getParam();
 	}
@@ -38,7 +38,7 @@ public class SBSYS_reset_clr_int_wdg extends ParamCode {
 		lb.setIndent("\t\t\t");
 		lb.add("struct int_wdg_device dev;");
 		lb.add("read_device_parameters(INT_WDG_DEV_ID, &dev);");
-		lb.add("dev.clr = true;");
+		lb.add("dev.cmd = true;");
 		lb.add("write_device_parameters(INT_WDG_DEV_ID, &dev);");
 		lb.addIndentOnly("break;");
 		return lb.toString();

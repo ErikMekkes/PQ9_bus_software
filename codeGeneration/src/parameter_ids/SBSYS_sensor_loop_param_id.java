@@ -5,7 +5,7 @@ package parameter_ids;
  * Advised not to modify the constructors, default values can instead be
  * edited in ParamDefaults.java
  */
-public class SBSYS_sensor_loop extends ParamCode {
+public class SBSYS_sensor_loop_param_id extends ParamCode {
 	// Parameter representation.
 	private Param param;
 	// Declare commonly used code parts.
@@ -18,7 +18,7 @@ public class SBSYS_sensor_loop extends ParamCode {
 	 * @param param
 	 *      Parameter values for which specific code is generated
 	 */
-	public SBSYS_sensor_loop(Param param) {
+	public SBSYS_sensor_loop_param_id(Param param) {
 		super(param);
 		this.param = super.getParam();
 		commonFormats();

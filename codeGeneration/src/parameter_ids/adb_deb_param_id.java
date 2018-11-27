@@ -5,7 +5,7 @@ package parameter_ids;
  * Advised not to modify the constructors, default values can instead be
  * edited in ParamDefaults.java
  */
-public class SBSYS_reset_cmd_int_wdg extends ParamCode {
+public class adb_deb_param_id extends ParamCode {
 	// Parameter representation.
 	private Param param;
 	
@@ -15,7 +15,7 @@ public class SBSYS_reset_cmd_int_wdg extends ParamCode {
 	 * @param param
 	 *      Parameter values for which specific code is generated
 	 */
-	public SBSYS_reset_cmd_int_wdg(Param param) {
+	public adb_deb_param_id(Param param) {
 		super(param);
 		this.param = super.getParam();
 	}
@@ -36,17 +36,29 @@ public class SBSYS_reset_cmd_int_wdg extends ParamCode {
 		LineBuilder lb = new LineBuilder("\t\t");
 		lb.add("case " + param.idName + " :");
 		lb.setIndent("\t\t\t");
-		lb.add("struct int_wdg_device dev;");
-		lb.add("read_device_parameters(INT_WDG_DEV_ID, &dev);");
-		lb.add("dev.cmd = true;");
-		lb.add("write_device_parameters(INT_WDG_DEV_ID, &dev);");
+		lb.add("uint8_t *buf;");
+		lb.add("buf = (uint8_t*)value;");
+		lb.add("");
+		lb.add("burn_sw_num = buf[0];");
+		lb.add("burn_feedback = buf[1];");
+		lb.add("");
+		lb.add("cnv8_16LE(&buf[2], &burn_time);");
+		lb.add("");
+		lb.add("if(!C_ASSERT(burn_time > 0 && burn_time < 200) == true) {");
+		lb.add("\treturn false;");
+		lb.add("}");
+		lb.add("");
+		lb.add("HAL_post_burn_event();");
 		lb.addIndentOnly("break;");
 		return lb.toString();
-		
 	}
 	
 	public String parSpecific() {
-		return null;
+		LineBuilder lb = new LineBuilder();
+		lb.add("uint8_t burn_sw_num;");
+		lb.add("uint8_t burn_feedback;");
+		lb.addIndentOnly("uint16_t burn_time;");
+		return lb.toString();
 	}
 }
 

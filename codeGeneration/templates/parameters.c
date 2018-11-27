@@ -6,11 +6,25 @@
 //< The rest of the file will be automatically generated when running the code generator
 //< WARNING: The code generator should have a class for each used parameter type
 //<
-//< Use the format: $param$ paramId (default value)
-//< Example: $param$ SBSYS_sensor_loop_param_id_32 100000
+//< Use the format: $param$ paramId (default_value) (data_type) (enum_value)
+//< parameters between parentheses (...) are optional, but are expected to be provided
+//< incrementally, e.g. specifying only '$param$ paramId (enum_value)' is invalid input
+//< 'default' is an accepted input, resolves to defaults specified in ParamDefaults.java
+//< Examples of valid input:
+//< $param$ SBSYS_sensor_loop_param_id_32
+//< $param$ SBSYS_sensor_loop_param_id_32 100000
+//< $param$ SBSYS_sensor_loop_param_id_32 100000 uint32_t
+//< $param$ SBSYS_sensor_loop_param_id_32 100000 default 55
+//< $param$ SBSYS_sensor_loop_param_id_32 default uint32_t default
 $param$ SBSYS_sensor_loop_param_id 100000
+$param$ testing_2_param_id
+$param$ testing_2_param_id default
 $param$ testing_2_param_id 0xCAFE
+$param$ testing_2_param_id 8800 uint64_t
+$param$ testing_2_param_id 0xCADE uint32_t 55
+$param$ testing_2_param_id Zergling uint32_t default
 $param$ testing_4_param_id 0xDEADBEEF
+$param$ testing_2_param_id default
 $param$ adb_deb_param_id
 $param$ SBSYS_reset_cmd_int_wdg_param_id
 $param$ SBSYS_reset_clr_int_wdg_param_id
