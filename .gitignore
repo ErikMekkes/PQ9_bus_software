@@ -2,3 +2,4 @@ codeGeneration/.idea/
 codeGeneration/TEST/
 *.class
 Experiments/
+*.iml

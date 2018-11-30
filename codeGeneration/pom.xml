@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+				 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+				 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>PQ9_bus_software</groupId>
+	<artifactId>codeGeneration</artifactId>
+	<version>1.0-SNAPSHOT</version>
+	<url>https://github.com/ErikMekkes/PQ9_bus_software</url>
+	<name>codeGeneration</name>
+	<description>Generates subsystem code for the PQ9 bus.</description>
+	<packaging>jar</packaging>
+	
+	<properties>
+		<!-- intended java version -->
+		<maven.compiler.source>1.11</maven.compiler.source>
+		<maven.compiler.target>1.11</maven.compiler.target>
+		<!-- encoding specification -->
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		
+		<json.version>20160810</json.version>
+	</properties>
+	
+	<dependencies>
+		<!-- https://mvnrepository.com/artifact/org.json/json -->
+		<dependency>
+			<groupId>org.json</groupId>
+			<artifactId>json</artifactId>
+			<version>${json.version}</version>
+		</dependency>
+	</dependencies>
+</project>
