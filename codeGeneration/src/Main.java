@@ -14,8 +14,13 @@ public class Main {
 	private static final String HAL_SUBDIR = "HAL";
 	// Map of code generation classes for each parameter
 	private static Map<String, Param> paramCodeGeneration;
+	private static String templateDir = "templates/";
 
 	public static void main(String[] args) {
+		ArrayList<String> text = processTemplate("mainTemplate");
+		if (null != text) {
+			writeToFile(text, "./" + dirName + "/test");
+		}
 		// Prompt user for subsystem name
 		Scanner input = new Scanner(System.in);
 		System.out.println(
@@ -262,6 +267,125 @@ public class Main {
 			}
 		}
 	}
+	
+	/**
+	 * Generates a List of code lines by processing a specified template file.
+	 * A template file may define variables and additional templates.
+	 *
+	 * Processing first removing template comments, followed by checking for
+	 * variable definitions and replacing all occurrences of variables
+	 * with the values specified for each variable. Finally the template is
+	 * checked for additional template definitions, which are read and
+	 * processed similarly.
+	 *
+	 * Variables from parent templates carry over to child templates. A child
+	 * template may redefine a variable with a different value, the process
+	 * function will warn when this occurs to ensure intended variable usage
+	 *
+	 * @param templateFile
+	 *      Specified template file to generate code lines from.
+	 * @return
+	 *      A list of code lines generated from the specified template.
+	 */
+	private static ArrayList<String> processTemplate(String templateFile) {
+		// Use empty initial set of variables
+		HashMap<String, String> vars = new HashMap<>();
+		return processTemplate(templateFile, vars);
+	}
+	
+	/**
+	 * Generates a List of code lines by processing a specified template file.
+	 * A template file may define variables and additional templates.
+	 * Takes an initial set of defined variables as additional input.
+	 *
+	 * Processing first removing template comments, followed by checking for
+	 * additional variable definitions and replacing all occurrences of variables
+	 * with the values specified for each variable. Finally the template is
+	 * checked for additional template definitions, which are read and
+	 * processed similarly.
+	 *
+	 * Variables from parent templates carry over to child templates. A child
+	 * template may redefine a variable with a different value, the process
+	 * function will warn when this occurs to ensure intended variable usage
+	 *
+	 * @param templateFile
+	 *      Specified template file to generate code lines from.
+	 * @param vars
+	 *      Specified initial variables as (key,value) pairs.
+	 * @return
+	 *      A list of code lines generated from the specified template.
+	 */
+	private static ArrayList<String> processTemplate(
+					String templateFile,
+					HashMap<String, String> vars) {
+		// read code from template file
+		ArrayList<String> code = readFromFile(templateDir + templateFile);
+		if (null == code) {
+			// nothing read from file, user is already warned
+			return null;
+		}
+		
+		removeTemplateComments(code);
+		
+		// check if templateFile specifies additional variables
+		Iterator<String> itr = code.iterator();
+		while(itr.hasNext()) {
+			String str = itr.next();
+			String trimStr = str.trim();
+			String[] parts = trimStr.split(" ");
+			if (3== parts.length && parts[0].equals("$var$")) {
+				// if variable was already defined in parent, warn user
+				if (vars.containsKey(parts[1])) {
+					System.err.println("Warning: template " + templateFile +
+									" overrides parent template variable " + parts[1] +
+									" locally with value " + parts[2]);
+				}
+				// store variable in map as key, value
+				vars.put(parts[1], parts[2]);
+				itr.remove();
+			}
+		}
+		
+		// loop through code lines, replace all var keys with var values
+		int lineNumber = -1;
+		int size = code.size() - 1;
+		while (lineNumber < size){
+			lineNumber++;
+			String str = code.get(lineNumber);
+			// loop through vars, if str contains var key replace with var value
+			for (String key : vars.keySet()) {
+				String value = vars.get(key);
+				str = str.replace(key, value);
+			}
+			code.set(lineNumber, str);
+		}
+		
+		// check if the templateFile specifies additional templates
+		lineNumber = -1;
+		size = code.size() - 1;
+		while (lineNumber < size){
+			lineNumber++;
+			String str = code.get(lineNumber);
+			String trimStr = str.trim();
+			String[] parts = trimStr.split(" ");
+			// if current line identifies another template file...
+			if (2 == parts.length && parts[0].equals("$template$")) {
+				// call this function recursively for sub-template
+				ArrayList<String> temp = processTemplate(parts[1], vars);
+				if (null == temp) {
+					// nothing read from file, user is already warned
+					continue;
+				}
+				// replace line with code read from template
+				code.remove(lineNumber);
+				size--;
+				code.addAll(lineNumber, temp);
+				size += temp.size();
+			}
+		}
+		
+		return code;
+	}
 
 	/**
 	 * Removes template comments from the code. Template comments are
@@ -310,10 +434,10 @@ public class Main {
 			bufferedReader.lines().forEach(code::add);
 			return code;
 		} catch (FileNotFoundException e) {
-			System.err.println("File not found!");
+			System.err.println("File " + fileName + " not found!");
 			return null;
 		} catch (IOException e) {
-			System.err.println("Error reading from file!");
+			System.err.println("Error reading from file " + fileName + "!");
 			return null;
 		}
 	}

@@ -29,7 +29,34 @@ public class adb_deb_param_id extends ParamCode {
 	}
 
 	public String getterFunc() {
-		return null;
+		LineBuilder lb = new LineBuilder("\t\t");
+		lb.add("case " + param.idName + " :");
+		lb.setIndent("\t\t\t");
+		lb.add("struct dep_device dev;");
+		lb.add("");
+		lb.add("read_device_parameters(ADB_DEP_DEV_ID, &dev);");
+		lb.add("");
+		lb.add("buf[0] = 0;");
+		lb.add("buf[1] = 0;");
+		lb.add("");
+		lb.add("buf[1] = (dev.b1_status << 3) | \\");
+		lb.add("(dev.b2_status << 2) | \\");
+		lb.add("(dev.b3_status << 1) | \\");
+		lb.add("dev.b4_status;");
+		lb.add("");
+		lb.add("buf[0] = (dev.b1_enabled << 7) | \\");
+		lb.add("(dev.b2_enabled << 6) | \\");
+		lb.add("(dev.b3_enabled << 5) | \\");
+		lb.add("(dev.b4_enabled << 4) | \\");
+		lb.add("(dev.b1_state << 3) | \\");
+		lb.add("(dev.b2_state << 2) | \\");
+		lb.add("(dev.b3_state << 1) | \\");
+		lb.add("dev.b4_state;");
+		lb.add("");
+		lb.add("*((uint16_t*)value) = (buf[1] << 8) | buf[0];");
+		lb.add("*size = 2;");
+		lb.addIndentOnly("break;");
+		return lb.toString();
 	}
 
 	public String setterFunc() {

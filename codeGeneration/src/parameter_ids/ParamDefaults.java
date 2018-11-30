@@ -10,6 +10,8 @@ public class ParamDefaults {
 	// list of all param_id
 	public static final String testing_2_param_id = "testing_2_param_id";
 	public static final String testing_4_param_id = "testing_4_param_id";
+	public static final String adb_int_param_id = "adb_int_param_id";
+	public static final String adb_sensor_status_param_id = "adb_sensor_status_param_id";
 	public static final String adb_deb_param_id = "adb_deb_param_id";
 	public static final String SBSYS_reset_cmd_int_wdg_param_id = "SBSYS_reset_cmd_int_wdg_param_id";
 	public static final String SBSYS_reset_clr_int_wdg_param_id = "SBSYS_reset_clr_int_wdg_param_id";
@@ -18,6 +20,8 @@ public class ParamDefaults {
 	// default values of all param_id
 	private static final Param testing_2 = new Param(10, testing_2_param_id, "uint16_t", "0xCAFE");
 	private static final Param testing_4 = new Param(11, testing_4_param_id, "uint32_t", "0xDEADBEEF");
+	private static final Param adb_int = new Param(47, adb_int_param_id, "", "");
+	private static final Param adb_sensor_status = new Param(48, adb_sensor_status_param_id, "", "");
 	private static final Param adb_deb = new Param(49, adb_deb_param_id, "", "");
 	private static final Param SBSYS_reset_cmd_int_wdg = new Param(59, SBSYS_reset_cmd_int_wdg_param_id, "", "");
 	private static final Param SBSYS_reset_clr_int_wdg = new Param(60, SBSYS_reset_clr_int_wdg_param_id, "", "");
@@ -35,6 +39,8 @@ public class ParamDefaults {
 		
 		paramCodes.put(testing_2_param_id, testing_2);
 		paramCodes.put(testing_4_param_id, testing_4);
+		paramCodes.put(adb_int_param_id, adb_int);
+		paramCodes.put(adb_sensor_status_param_id, adb_sensor_status);
 		paramCodes.put(adb_deb_param_id, adb_deb);
 		paramCodes.put(SBSYS_reset_cmd_int_wdg_param_id, SBSYS_reset_cmd_int_wdg);
 		paramCodes.put(SBSYS_reset_clr_int_wdg_param_id, SBSYS_reset_clr_int_wdg);

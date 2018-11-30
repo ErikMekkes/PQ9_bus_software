@@ -1,0 +1,16 @@
+$var$ var1 foo
+hello
+I
+am a
+very cool new var1
+template
+$template$
+$templat$
+$emplate$
+$template$ 
+$template$ var1
+$template$ subTemplate
+y = x?
+foo =  var1
+the
+end
