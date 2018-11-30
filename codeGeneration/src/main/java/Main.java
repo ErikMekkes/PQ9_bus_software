@@ -17,10 +17,6 @@ public class Main {
 	private static String templateDir = "templates/";
 
 	public static void main(String[] args) {
-		ArrayList<String> text = processTemplate("mainTemplate");
-		if (null != text) {
-			writeToFile(text, "./" + dirName + "/test");
-		}
 		// Prompt user for subsystem name
 		Scanner input = new Scanner(System.in);
 		System.out.println(
@@ -65,6 +61,11 @@ public class Main {
 			System.err.println("One of the files to create already exists!");
 		} catch (IOException e) {
 			e.printStackTrace();
+		}
+		
+		ArrayList<String> text = processTemplate("mainTemplate");
+		if (null != text) {
+			writeToFile(text, "./" + dirName + "/test");
 		}
 
 		// load default parameter code generation classes

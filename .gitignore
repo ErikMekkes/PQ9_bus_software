@@ -3,3 +3,4 @@ codeGeneration/TEST/
 *.class
 Experiments/
 *.iml
+codeGeneration/target/
