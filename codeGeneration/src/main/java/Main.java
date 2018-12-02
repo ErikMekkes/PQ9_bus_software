@@ -1,85 +1,123 @@
 import java.io.*;
-import java.nio.charset.Charset;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+import Utilities.Utilities;
+
+import org.json.JSONArray;
+import org.json.JSONObject;
 import parameter_ids.*;
 
 public class Main {
-	// Default directory names
-	private static String dirName = "TEST";
-	private static final String HAL_SUBDIR = "HAL";
+	// main subsystem / directory name
+	private static String dirName;
+	// subdirectories
+	private static ArrayList<String> subDirs = new ArrayList<>();
+	// files to be generated
+	private static ArrayList<String> fileNames = new ArrayList<>();
+	// whether or not to overwrite existing files
+	private static boolean overwriteExisting = false;
 	// Map of code generation classes for each parameter
 	private static Map<String, Param> paramCodeGeneration;
 	private static String templateDir = "templates/";
+	
+	private static final String SETTINGS_FILE = "settings.json";
+	private static JSONObject settings;
 
 	public static void main(String[] args) {
-		// Prompt user for subsystem name
-		Scanner input = new Scanner(System.in);
-		System.out.println(
-						"This is the PQ9_bus_software subsystem code generator!\n");
-		System.out.println(
-						"This program will automatically generate new subsystem software" +
-						"based on the templates provided in ./templates\n");
-		System.out.print("Please enter a name for the subsystem to generate: ");
-		dirName = input.next();
+		String intro =
+					"\nThis is the PQ9_bus_software subsystem code generator!\n" +
+					"Code generator settings can be found in settings.Utilities.\n" +
+					"Templates to use for generating files can be placed in the " +
+					"templates folder\n";
+		System.out.println(intro);
 		
-		// Find the referenced location (relative to current)
-		Path SubsFolder = Paths.get("./" + dirName);
-		// Prompt user for overwriting existing directory if present
-		if (Files.exists(SubsFolder)) {
-			System.out.println("Subsystem output folder " + dirName + " exists!");
-			System.out.print(
-							"Overwrite existing " + dirName + " folder? (Yes)/(No) : ");
-			String response = input.next();
-			// Keep asking until user enters something sensible
-			while (!(response.equals("Yes") || response.equals("No"))) {
-				System.out.println("Answer not recognized, use 'Yes' or 'No'");
-				System.out.print(
-								"Overwrite existing " + dirName + " folder? (Yes)/(No) : ");
-				response = input.next();
-			}
-			// Either exit or delete existing folder and continue
-			switch (response){
-				case "No" :
-					return;
-				case "Yes" :
-					deleteDirectoryStream(SubsFolder);
+		settings = Utilities.readJSONFromFile(SETTINGS_FILE);
+		
+		ArrayList<Param> params = Utilities.readParamCSV("params.csv");
+		params.forEach(par -> System.out.println(par.toString()));
+		
+		if (null == settings) {
+			return;
+		}
+		
+		// find main directory from settings
+		dirName = settings.getString("subsystem_name");
+		// find subdirectories from settings
+		JSONArray subdirectories = settings.getJSONArray("subdirectories");
+		for (Object folderName : subdirectories) {
+			if (folderName instanceof String) {
+				subDirs.add((String) folderName);
 			}
 		}
 		
-		// Find subdirectory location
-		Path HALFolder = Paths.get("./" + dirName + "/" + HAL_SUBDIR);
-		// Try to make the directories
-		try {
-			Files.createDirectory(SubsFolder);
-			Files.createDirectory(HALFolder);
-		} catch(FileAlreadyExistsException e) {
-			System.err.println("One of the files to create already exists!");
-		} catch (IOException e) {
-			e.printStackTrace();
+		// generate all required directories specified in settings
+		System.out.println("Making required directories...");
+		makeDirs();
+		
+		// find files to generate from settings
+		JSONArray files = settings.getJSONArray("files_to_generate");
+		for (Object file : files) {
+			if (file instanceof JSONObject) {
+				fileNames.add(((JSONObject) file).getString("filename"));
+			}
 		}
 		
-		ArrayList<String> text = processTemplate("mainTemplate");
-		if (null != text) {
-			writeToFile(text, "./" + dirName + "/test");
-		}
-
-		// load default parameter code generation classes
-		paramCodeGeneration = ParamDefaults.mapDefaultParamCodes();
-		
-		// Start generating files
-		generateParameterFiles();
-		generateFmFiles();
+		// generate all required files specified in settings
+		System.out.println("Generating specified files...");
+		makeFiles();
 		
 		// Indicate ending for user.
-		System.out.println(
-						"\nSuccesfully finished generating " + dirName + " Subsystem!");
-		System.out.println("Please do check the output files in ./" + dirName +
-						"and take any possible warnings provided above into account");
+		String exit =
+					"\nSuccessfully finished generating " + dirName + " Subsystem!\n" +
+					"Please do check the output files in ./" + dirName +
+					" and take any possible warnings provided above into account";
+		System.out.println(exit);
+	}
+	
+	private static void makeDirs() {
+		Path SubsFolder = Paths.get("./" + dirName);
+		
+		overwriteExisting = settings.getBoolean("overwrite_existing_files");
+		if (Files.exists(SubsFolder) && overwriteExisting) {
+			deleteDirectoryStream(SubsFolder);
+		}
+		
+		// Try to make the main directory
+		try {
+			Files.createDirectory(SubsFolder);
+		} catch(FileAlreadyExistsException e) {
+			System.err.println("Warning: The main directory " + dirName + " already" +
+							" exists!");
+		} catch (IOException e) {
+			System.err.println("Error: unable to create main directory " + dirName + "!");
+		}
+		// Try to make the subdirectories
+		subDirs.forEach(dir -> {
+			Path subDir = Paths.get("./" + dirName + "/" + dir);
+			if (Files.exists(subDir) && overwriteExisting) {
+				deleteDirectoryStream(subDir);
+			}
+			try {
+				Files.createDirectory(subDir);
+			} catch(FileAlreadyExistsException e) {
+				System.err.println("Warning: The subdirectory " + dir + " already " +
+								"exists!");
+			} catch (IOException e) {
+				System.err.println("Error: unable to create subdirectory " + dir + "!");
+			}
+		});
+	}
+	
+	private static void makeFiles() {
+		fileNames.forEach(fileName ->
+						Utilities.writeLinesToFile(
+										processTemplate(fileName),
+										"./" + dirName + "/" + fileName,
+										overwriteExisting));
 	}
 
 	private static void deleteDirectoryStream(Path path) {
@@ -96,28 +134,29 @@ public class Main {
 	private static void generateFmFiles() {
 		ArrayList<String> codeLines;
 		// Use fm.h template to generate a fm.h file, removing template comments
-		codeLines = readFromFile("templates/fm.h");
+		codeLines = Utilities.readLinesFromFile("templates/fm.h");
 		removeTemplateComments(codeLines);
-		writeToFile(codeLines,"./" + dirName + "/fm.h");
+		Utilities.writeLinesToFile(codeLines,"./" + dirName + "/fm.h",
+						overwriteExisting);
 
 		// Use fm.c template to generate a fm.c file, removing template comments
-		codeLines = readFromFile("templates/fm.c");
+		codeLines = Utilities.readLinesFromFile("templates/fm.c");
 		removeTemplateComments(codeLines);
-		writeToFile(codeLines,"./" + dirName + "/fm.c");
+		Utilities.writeLinesToFile(codeLines,"./" + dirName + "/fm.c", overwriteExisting);
 	}
 
 	private static void generateParameterFiles() {
 		ArrayList<String> codeLines;
-		// Use fm.c template to generate a fm.c file, removing template comments
-		codeLines = readFromFile("templates/parameters.h");
+		// generate parameters.h file, removing template comments
+		codeLines = Utilities.readLinesFromFile("templates/parameters.h");
 		removeTemplateComments(codeLines);
-		writeToFile(codeLines,"./" + dirName + "/parameters.h");
-
-		// Use fm.c template to generate a fm.c file, removing template comments
-		codeLines = readFromFile("templates/parameters.c");
+		Utilities.writeLinesToFile(codeLines,"./" + dirName + "/parameters.h", overwriteExisting);
+		
+		// generate parameters.c file, removing template comments
+		codeLines = Utilities.readLinesFromFile("templates/parameters.c");
 		removeTemplateComments(codeLines);
 		processParameters(codeLines);
-		writeToFile(codeLines,"./" + dirName + "/parameters.c");
+		Utilities.writeLinesToFile(codeLines,"./" + dirName + "/parameters.c", overwriteExisting);
 	}
 
 	private static void processParameters(ArrayList<String> code) {
@@ -320,7 +359,7 @@ public class Main {
 					String templateFile,
 					HashMap<String, String> vars) {
 		// read code from template file
-		ArrayList<String> code = readFromFile(templateDir + templateFile);
+		ArrayList<String> code = Utilities.readLinesFromFile(templateDir + templateFile);
 		if (null == code) {
 			// nothing read from file, user is already warned
 			return null;
@@ -411,66 +450,6 @@ public class Main {
 			if (trimStr.length() > 2 && trimStr.substring(0,3).equals("//<")) {
 				itr.remove();
 			}
-		}
-	}
-
-	/**
-	 * Loads the specified file into program memory per line as a list of
-	 * Strings.
-	 *
-	 * @param fileName
-	 *          The local file to read into memory.
-	 * @return
-	 *          An ArrayList of Strings, each element is a line from the file.
-	 */
-	private static ArrayList<String> readFromFile(String fileName) {
-		// Make new empty list for result
-		ArrayList<String> code = new ArrayList<>();
-		// Find the referenced location, try to open with BufferedReader
-		// try with resource -> resource gets closed automatically
-		Path filePath= Paths.get(fileName);
-		try (BufferedReader bufferedReader = Files.newBufferedReader(filePath,
-				Charset.forName("UTF-8"))){
-			// loop through each line in BufferedReader, add to result list
-			bufferedReader.lines().forEach(code::add);
-			return code;
-		} catch (FileNotFoundException e) {
-			System.err.println("File " + fileName + " not found!");
-			return null;
-		} catch (IOException e) {
-			System.err.println("Error reading from file " + fileName + "!");
-			return null;
-		}
-	}
-
-	/**
-	 * Writes the specified list of Strings to a file as separate lines.
-	 * @param code
-	 *      ArrayList of Strings to write to file.
-	 * @param fileName
-	 *      File path to write to.
-	 */
-	private static void writeToFile(ArrayList<String> code, String fileName) {
-		// Find the referenced location, try to open with BufferedReader
-		// try with resource -> resource gets closed automatically
-		Path filePath= Paths.get(fileName);
-		try (BufferedWriter br = Files.newBufferedWriter(filePath,
-				Charset.forName("UTF-8"))){
-			// Loop through each list item, write to the file with a linebreak
-			code.forEach((str) -> {
-				if (null == str) return;
-				try {
-					br.write(str);
-					br.newLine();
-				} catch (IOException e) {
-					System.err.println("Error writing string" + str + "to " +
-							"file!");
-				}
-			});
-		} catch (FileNotFoundException e) {
-			System.err.println("File not found!");
-		} catch (IOException e) {
-			System.err.println("Error writing to file!");
 		}
 	}
 }

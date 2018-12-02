@@ -1,0 +1,10 @@
+{
+	"subsystem_name" : "TARS",
+	"subdirectories" : ["HAL", "CASE"],
+	"overwrite_existing_files" : true,
+	"files_to_generate" : [
+		{"filename" : "parameters.c", "parameter_file" : "adbparams.csv"},
+		{"filename" : "parameters.c", "parameters" : []},
+		{"filename" : "parameters.h"}
+	]
+}

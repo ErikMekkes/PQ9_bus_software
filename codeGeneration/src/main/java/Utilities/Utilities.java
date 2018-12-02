@@ -1,6 +1,10 @@
-package json;
+package Utilities;
 
 import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 
 import org.json.JSONException;
@@ -8,10 +12,10 @@ import org.json.JSONObject;
 import parameter_ids.Param;
 
 /**
- * JSON utilities for codeGeneration.
+ * Utilities for codeGeneration.
  * @author Erik
  */
-public class json {
+public class Utilities {
 	
 	/**
 	 * Attempts to read a specified file as a JSONObject
@@ -28,8 +32,8 @@ public class json {
 			}
 			return new JSONObject(str);
 		} catch (JSONException e) {
-			e.printStackTrace();
 			System.out.println("Error reading JSON from file " + fileName + "!");
+			System.out.println(e.getMessage());
 			return null;
 		}
 	}
@@ -47,7 +51,7 @@ public class json {
 		if (null == fileName) {
 			return params;
 		}
-		ArrayList<String> lines = readFromFile(fileName);
+		ArrayList<String> lines = readLinesFromFile(fileName);
 		if (null == lines) {
 			return params;
 		}
@@ -61,7 +65,7 @@ public class json {
 	
 	
 	/**
-	 * Loads the specified file into program memory per line as a list of
+	 * Reads the specified file into program memory per line as a list of
 	 * Strings.
 	 *
 	 * @param fileName
@@ -69,7 +73,7 @@ public class json {
 	 * @return
 	 *          An ArrayList of Strings, each element is a line from the file.
 	 */
-	public static ArrayList<String> readFromFile(String fileName) {
+	public static ArrayList<String> readLinesFromFile(String fileName) {
 		// Make new empty list for result
 		ArrayList<String> code = new ArrayList<>();
 		// Find file in resources folder
@@ -91,6 +95,61 @@ public class json {
 		}
 	}
 	
+	/**
+	 * Writes the specified list of Strings to a file as separate lines.
+	 * @param code
+	 *      ArrayList of Strings to write to file.
+	 * @param fileName
+	 *      File path to write to.
+	 * @param overwriteExisting
+	 *      Whether or not to overwrite file if file already exists.
+	 */
+	public static void writeLinesToFile(ArrayList<String> code,
+	                                     String fileName,
+	                                     boolean overwriteExisting) {
+		// Find the referenced location, check if should be overridden
+		Path filePath= Paths.get(fileName);
+		if (Files.exists(filePath)) {
+			if (overwriteExisting) {
+				try {
+					Files.delete(filePath);
+				} catch (IOException e) {
+					System.err.println(
+									"Error: Unable to overwrite file : " + fileName + "!");
+				}
+			} else {
+				System.err.println("Warning: file " + fileName + " already exists and" +
+								" overwriting is disabled. This file was skipped!");
+			}
+		}
+		// try to open with BufferedReader resource -> gets closed automatically
+		try (BufferedWriter br = Files.newBufferedWriter(filePath,
+						Charset.forName("UTF-8"))){
+			// Loop through each list item, write to the file with a linebreak
+			code.forEach((str) -> {
+				if (null == str) return;
+				try {
+					br.write(str);
+					br.newLine();
+				} catch (IOException e) {
+					System.err.println("Error writing string" + str + "to " +
+									"file!");
+				}
+			});
+		} catch (FileNotFoundException e) {
+			System.err.println("File not found!");
+		} catch (IOException e) {
+			System.err.println("Error writing to file!");
+		}
+	}
+	
+	/**
+	 * Reads the specified file into program memory as a single String.
+	 * @param fileName
+	 *      The local file to read into memory.
+	 * @return
+	 *      A String representation of the file.
+	 */
 	private static String readStringFromFile(String fileName) {
 		// Find file in resources folder
 		ClassLoader classloader = Thread.currentThread().getContextClassLoader();

@@ -1,0 +1,5 @@
+0,param_1,uint16_t,1000
+1,param_2,uint32_t,0xCAFE
+2,param_3,uint8_t,0xDEAD
+3,param_4,uint32_t,60000
+4,param_5,uint16_t,12
