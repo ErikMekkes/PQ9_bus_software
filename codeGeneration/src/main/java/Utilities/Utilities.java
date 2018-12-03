@@ -47,14 +47,14 @@ public class Utilities {
 	 *      ArrayList of param objects representing the CSV file.
 	 */
 	public static ArrayList<Param> readParamCSV(String fileName) {
-		ArrayList<Param> params = new ArrayList<>();
 		if (null == fileName) {
-			return params;
+			return null;
 		}
 		ArrayList<String> lines = readLinesFromFile(fileName);
 		if (null == lines) {
-			return params;
+			return null;
 		}
+		ArrayList<Param> params = new ArrayList<>();
 		lines.forEach(str -> {
 			String[] parts = str.split(",");
 			Param p = new Param(parts[0], parts[1], parts[2], parts[3]);
@@ -74,11 +74,20 @@ public class Utilities {
 	 *          An ArrayList of Strings, each element is a line from the file.
 	 */
 	public static ArrayList<String> readLinesFromFile(String fileName) {
+		if (null == fileName) {
+			System.err.println("Error: File name for readLinesFromFile function was" +
+							" null!");
+			return null;
+		}
 		// Make new empty list for result
 		ArrayList<String> code = new ArrayList<>();
 		// Find file in resources folder
 		ClassLoader classloader = Thread.currentThread().getContextClassLoader();
 		InputStream fileStream = classloader.getResourceAsStream(fileName);
+		if (null == fileStream) {
+			System.err.println("Error: Resource " + fileName + " not found!");
+			return null;
+		}
 		// Find the referenced location, try to open with BufferedReader
 		// try with resource -> resource gets closed automatically
 		try (InputStreamReader fileReader = new InputStreamReader(fileStream);
