@@ -3,8 +3,27 @@
 	"subdirectories" : ["HAL", "CASE"],
 	"overwrite_existing_files" : true,
 	"files_to_generate" : [
-		{"filename" : "parameters.c", "parameter_file" : "adbparams.csv"},
-		{"filename" : "parameters.c", "parameters" : []},
-		{"filename" : "parameters.h"}
+		{
+			"filename" : "parameters.c",
+			"parameters" : [
+				testing_2_param_id,
+				testing_4_param_id
+			]
+		},
+		{
+			"filename" : "test.c",
+			"base_template" : "fm.h",
+			"parameters" : [
+				SBSYS_sensor_loop_param_id,
+				adb_int_temp_param_id,
+				SBSYS_reset_clr_int_wdg_param_id,
+				SBSYS_reset_cmd_int_wdg_param_id,
+				[10,custom_param,uint32_t,888]
+			]
+		},
+		{"filename" : "parameters.h", "parameters" : "params.csv"},
+		{
+			"filename" : "mainTemplate"
+		}
 	]
 }

@@ -1,5 +1,9 @@
 package parameter_ids;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 public class Param {
 	public int enumValue;
 	public String idName;
@@ -29,6 +33,17 @@ public class Param {
 		this.idName = name;
 		this.dataType = dataType;
 		this.defaultValue = defaultValue;
+	}
+	
+	public Param(JSONArray par) {
+		try {
+			this.enumValue = par.getInt(0);
+			this.idName = par.getString(1);
+			this.dataType = par.getString(2);
+			this.defaultValue = par.getString(3);
+		} catch (JSONException e) {
+			System.err.println(e.getMessage());
+		}
 	}
 	
 	public String toString() {

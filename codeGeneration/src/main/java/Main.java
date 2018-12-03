@@ -16,10 +16,16 @@ public class Main {
 	private static String dirName;
 	// subdirectories
 	private static ArrayList<String> subDirs = new ArrayList<>();
-	// files to be generated
-	private static ArrayList<String> fileNames = new ArrayList<>();
+	// files to be generated and their base templates
+	private static Map<String, String> files = new HashMap<>();
 	// whether or not to overwrite existing files
 	private static boolean overwriteExisting = false;
+	// Map of all available parameters
+	private static Map<String, Param> params = new HashMap<>();
+	// Map of parameters to use for each file
+	private static Map<String, ArrayList<Param>> fileParams = new HashMap<>();
+	
+	
 	// Map of code generation classes for each parameter
 	private static Map<String, Param> paramCodeGeneration;
 	private static String templateDir = "templates/";
@@ -37,8 +43,9 @@ public class Main {
 		
 		settings = Utilities.readJSONFromFile(SETTINGS_FILE);
 		
-		ArrayList<Param> params = Utilities.readParamCSV("params.csv");
-		params.forEach(par -> System.out.println(par.toString()));
+		// Create map of all available parameters
+		ArrayList<Param> pars = Utilities.readParamCSV("params.csv");
+		pars.forEach(par -> params.put(par.idName, par));
 		
 		if (null == settings) {
 			return;
@@ -59,16 +66,75 @@ public class Main {
 		makeDirs();
 		
 		// find files to generate from settings
-		JSONArray files = settings.getJSONArray("files_to_generate");
-		for (Object file : files) {
+		// files in settings.json should be an object array = [{..},{..},...]
+		JSONArray sFiles = settings.getJSONArray("files_to_generate");
+		for (Object file : sFiles) {
 			if (file instanceof JSONObject) {
-				fileNames.add(((JSONObject) file).getString("filename"));
+				// if a base template was specified, use that template
+				if (((JSONObject) file).has("base_template")) {
+					files.put(((JSONObject) file).getString("filename"),
+									((JSONObject) file).getString("base_template"));
+				} else {
+					// use the filename to search for a base template
+					files.put(((JSONObject) file).getString("filename"),
+									((JSONObject) file).getString("filename"));
+				}
+			}
+		}
+		
+		// find parameters to use for each file
+		for (Object file : sFiles) {
+			if (file instanceof JSONObject) {
+				// each file object should have a specified filename key : value pair
+				String fileName = ((JSONObject) file).getString("filename");
+				// make empty list of params belonging to this file
+				ArrayList<Param> filePars = new ArrayList<>();
+				// each file object might have a parameter array
+				if (((JSONObject) file).has("parameters")) {
+					// make and add a param object for each element in the array
+					Object parameters = ((JSONObject) file).get(
+									"parameters");
+					// parameters is a filename containing parameter descriptions
+					if (parameters instanceof String) {
+						ArrayList<String> lines =
+										Utilities.readLinesFromFile((String) parameters);
+						if (null == lines) {
+							System.err.println("Eror: Parameter file " + parameters + " for" +
+											" " + fileName + " not found!");
+							continue;
+						}
+						lines.forEach(pString -> {
+							String[] parts = pString.split(",");
+							filePars.add(new Param(parts[0], parts[1], parts[2], parts[3]));
+						});
+					}
+					// parameters is an array containing parameter dsecriptions
+					if (parameters instanceof JSONArray) {
+						((JSONArray) parameters).forEach(par -> {
+							// description is a default parameter name
+							if (par instanceof String) {
+								filePars.add(params.get(par));
+							}
+							// description is a new custom parameter
+							if (par instanceof JSONArray) {
+								Param p = new Param((JSONArray) par);
+								filePars.add(p);
+							}
+						});
+					}
+				}
+				// add the list of parameters for this file to the map
+				fileParams.put(fileName, filePars);
 			}
 		}
 		
 		// generate all required files specified in settings
 		System.out.println("Generating specified files...");
-		makeFiles();
+		try {
+			makeFiles();
+		} catch (NullPointerException e) {
+			e.printStackTrace();
+		}
 		
 		// Indicate ending for user.
 		String exit =
@@ -113,11 +179,16 @@ public class Main {
 	}
 	
 	private static void makeFiles() {
-		fileNames.forEach(fileName ->
-						Utilities.writeLinesToFile(
-										processTemplate(fileName),
-										"./" + dirName + "/" + fileName,
-										overwriteExisting));
+		files.forEach((fileName,baseTemplate) -> {
+			ArrayList<String> lines = processTemplate(baseTemplate);
+			ArrayList<Param> pars = fileParams.get(fileName);
+			pars.forEach(par -> lines.add(par.toString()));
+			Utilities.writeLinesToFile(
+							lines,
+							"./" + dirName + "/" + fileName,
+							overwriteExisting
+			);
+		});
 	}
 
 	private static void deleteDirectoryStream(Path path) {
