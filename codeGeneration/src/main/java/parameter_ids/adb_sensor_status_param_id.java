@@ -30,7 +30,7 @@ public class adb_sensor_status_param_id extends ParamCode {
 
 	public String getterFunc() {
 		LineBuilder lb = new LineBuilder("\t\t");
-		lb.add("case " + param.idName + " :");
+		lb.add("case " + param.enumName + " :");
 		lb.setIndent("\t\t\t");
 		lb.add("bool status[16];");
 		lb.add("uint16_t size2;");

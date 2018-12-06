@@ -1,25 +1,37 @@
 //< This file is a template to be used by the subsystem code generator.
-//< TEMPLATE COMMENTS
-//< //< Indicates a template comment, these comments will be skipped entirely
+//< <- Indicates a template comment, template comments will be skipped entirely
 //< and will no longer be visible in the generated code.
 //<
-//< TEMPLATE VARIABLES
-//< It is possible to define variables to use in the template with:
-//< $var$ variable_identifier variablue_value
-//< example : replace every occurrence of 'foo' with 888
-//< $var$ foo 888
+//< TODO: It's possible to define required parameter & default values here
+//< The rest of the file will be automatically generated when running the code generator
+//< WARNING: The code generator should have a class for each used parameter type
 //<
-//< SUB-TEMPLATES
-//< It is also possible to include sub-templates with :
-//< $template$ template_name
-//< The code generator will replace such lines with that template's contents.
-//< Subtemplates can contain further subtemplates and so on.
-//< NOTE ON VARIABLES IN SUBTEMPLATES :
-//< Variable values defined in a subtemplate will only apply within the scope
-//< of that subtemplate.
-//< Variables from parent templates carry over! there is no warning for this!
-//< Variables from parent templates can be redefined with a different value,
-//< the generator will offer warnings when a parent's variable is redefined.
+//< Use the format: $param$ paramId (default_value) (data_type) (enum_value)
+//< parameters between parentheses (...) are optional, but are expected to be provided
+//< incrementally, e.g. specifying only '$param$ paramId (enum_value)' is invalid input
+//< 'default' is an accepted input, resolves to defaults specified in ParamDefaults.java
+//< Examples of valid input:
+//< $param$ SBSYS_sensor_loop_param_id_32
+//< $param$ SBSYS_sensor_loop_param_id_32 100000
+//< $param$ SBSYS_sensor_loop_param_id_32 100000 uint32_t
+//< $param$ SBSYS_sensor_loop_param_id_32 100000 default 55
+//< $param$ SBSYS_sensor_loop_param_id_32 default uint32_t default
+$param$ SBSYS_sensor_loop_param_id 100000
+$param$ testing_2_param_id
+$param$ testing_2_param_id default
+$param$ testing_2_param_id 0xCAFE
+$param$ testing_2_param_id 8800 uint64_t
+$param$ testing_2_param_id 0xCADE uint32_t 55
+$param$ testing_2_param_id Zergling uint32_t default
+$param$ testing_4_param_id 0xDEADBEEF
+$param$ testing_2_param_id default
+$param$ adb_deb_param_id
+$param$ SBSYS_reset_cmd_int_wdg_param_id
+$param$ SBSYS_reset_clr_int_wdg_param_id
+//< The code generator can handle some basic errors and warns about possibly unintended output
+$param$ random_unfindable thing
+$param$
+$param$ no_default_value_specified
 #include "parameters.h"
 // satellite parameter definitions
 #include "satellite.h"
@@ -28,17 +40,15 @@
 // contains utility functions for conversion between parameter data types.
 #include "packet_utilities.h"
 
+$par_specific$
+
 /*
  * Defines a mem_pool struct containing all the parameters that are required
  * by this subsystem.
  */
 struct parameters_memory_pool {
 	//< This tag indicates mem_pool struct code should be generated here.
-	$p-template$ [all] mem_pool
-	
-	$p-template$ [testing_2|testing_4] mem_pool
-	
-	$p-line$ [all] 	p_dataType p_name;
+	$mem_pool$
 } mem_pool;
 
 /*
@@ -46,6 +56,7 @@ struct parameters_memory_pool {
  */
 void init_parameters() {
 	//< This tag indicates init param code should be generated here.
+	$initParams$
 }
 
 /*
@@ -61,7 +72,7 @@ void init_parameters() {
 void get_parameter(param_id pid, void *value, uint8_t *buf, uint16_t *size) {
 	switch (pid) {
 		//< This tag indicates get param code should be generated here
-		$param$ get_parameter
+		$getParams$
 		default :
 			*size = 0;
 	}
@@ -74,10 +85,10 @@ bool set_parameter(param_id pid, void* value) {
 	bool res = true;
 	switch (pid) {
 		//< This tag indicates set param code should be generated here
-		$param$ set_parameter
+		$setParams$
 		default :
 			res = false;
 	}
-
+	
 	return res;
 }

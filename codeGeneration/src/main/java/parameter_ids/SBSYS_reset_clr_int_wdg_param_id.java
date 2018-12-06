@@ -34,7 +34,7 @@ public class SBSYS_reset_clr_int_wdg_param_id extends ParamCode {
 
 	public String setterFunc() {
 		LineBuilder lb = new LineBuilder("\t\t");
-		lb.add("case " + param.idName + " :");
+		lb.add("case " + param.enumName + " :");
 		lb.setIndent("\t\t\t");
 		lb.add("struct int_wdg_device dev;");
 		lb.add("read_device_parameters(INT_WDG_DEV_ID, &dev);");

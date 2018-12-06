@@ -30,7 +30,7 @@ public class adb_int_param_id extends ParamCode {
 
 	public String getterFunc() {
 		LineBuilder lb = new LineBuilder("\t\t");
-		lb.add("case " + param.idName + " :");
+		lb.add("case " + param.enumName + " :");
 		lb.setIndent("\t\t\t");
 		lb.add("struct tmp_device tmp_dev;");
 		lb.add("");

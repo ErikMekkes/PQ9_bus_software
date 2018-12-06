@@ -5,11 +5,14 @@ am a
 very cool new var1
 template
 $template$
+$template
+templ$ate
 $templat$
 $emplate$
 $template$ 
 $template$ var1
-$template$ subTemplate
+$template$ subTemplate1
+$template$ subTemplate2
 y = x?
 foo =  var1
 the

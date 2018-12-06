@@ -1,0 +1,6 @@
+$var$ var1 bar
+	subtemplate
+	has var1
+	cool
+	stuff
+	and y = x

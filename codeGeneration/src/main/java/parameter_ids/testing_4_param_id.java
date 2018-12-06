@@ -33,7 +33,7 @@ public class testing_4_param_id extends ParamCode {
 		// using the full data type for the conv function names would be nicer.
 		dType = Integer.parseInt(param.dataType.substring(4,6));
 		// name used for variable in generated code (can't be the global name)
-		name = param.idName.substring(0, param.idName.length()-9);
+		name = param.enumName.substring(0, param.enumName.length()-9);
 	}
 
 	public String memPoolStruct() {
@@ -46,7 +46,7 @@ public class testing_4_param_id extends ParamCode {
 
 	public String getterFunc() {
 		LineBuilder lb = new LineBuilder("\t\t");
-		lb.add("case " + param.idName + " :");
+		lb.add("case " + param.enumName + " :");
 		lb.setIndent("\t\t\t");
 		lb.add("*((" + param.dataType + "*)value) = mem_pool." + name + ";");
 		lb.add("cnv" + dType + "_8(mem_pool." + name + ", " +	"buf);");

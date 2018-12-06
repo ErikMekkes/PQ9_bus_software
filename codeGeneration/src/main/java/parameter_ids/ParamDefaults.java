@@ -52,7 +52,7 @@ public class ParamDefaults {
 	
 	
 	public static ParamCode getCodeGeneratorClass(Param param) {
-		switch (param.idName) {
+		switch (param.enumName) {
 			case ParamDefaults.testing_2_param_id :
 				return new testing_2_param_id(param);
 			case ParamDefaults.testing_4_param_id :

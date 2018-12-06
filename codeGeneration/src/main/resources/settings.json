@@ -5,23 +5,27 @@
 	"files_to_generate" : [
 		{
 			"filename" : "parameters.c",
+			"parameters" : "adb_params.csv"
+		},
+		{
+			"filename" : "somefile",
+			"base_template" : "parameters.c",
 			"parameters" : [
-				testing_2_param_id,
-				testing_4_param_id
+				testing_2,
+				testing_4
 			]
 		},
 		{
 			"filename" : "test.c",
 			"base_template" : "fm.h",
 			"parameters" : [
-				SBSYS_sensor_loop_param_id,
-				adb_int_temp_param_id,
-				SBSYS_reset_clr_int_wdg_param_id,
-				SBSYS_reset_cmd_int_wdg_param_id,
-				[10,custom_param,uint32_t,888]
+				SBSYS_sensor_loop,
+				adb_int_temp,
+				SBSYS_reset_clr_int_wdg,
+				SBSYS_reset_cmd_int_wdg,
+				[10,"custom_param","uint32_t","888"]
 			]
 		},
-		{"filename" : "parameters.h", "parameters" : "params.csv"},
 		{
 			"filename" : "mainTemplate"
 		}

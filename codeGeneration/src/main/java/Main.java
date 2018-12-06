@@ -5,8 +5,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
-import Utilities.Utilities;
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 import parameter_ids.*;
@@ -23,7 +21,8 @@ public class Main {
 	// Map of all available parameters
 	private static Map<String, Param> params = new HashMap<>();
 	// Map of parameters to use for each file
-	private static Map<String, ArrayList<Param>> fileParams = new HashMap<>();
+	private static Map<String, Map<String, Param>> fileParams =
+					new HashMap<>();
 	
 	
 	// Map of code generation classes for each parameter
@@ -45,7 +44,7 @@ public class Main {
 		
 		// Create map of all available parameters
 		ArrayList<Param> pars = Utilities.readParamCSV("params.csv");
-		pars.forEach(par -> params.put(par.idName, par));
+		pars.forEach(par -> params.put(par.name, par));
 		
 		if (null == settings) {
 			return;
@@ -82,13 +81,29 @@ public class Main {
 			}
 		}
 		
+		findParams();
+		
+		// generate all required files specified in settings
+		System.out.println("Generating specified files...");
+		makeFiles();
+		
+		// Indicate ending for user.
+		String exit =
+					"\nSuccessfully finished generating " + dirName + " Subsystem!\n" +
+					"Please do check the output files in ./" + dirName +
+					" and take any possible warnings provided above into account";
+		System.out.println(exit);
+	}
+	
+	private static void findParams() {
 		// find parameters to use for each file
+		JSONArray sFiles = settings.getJSONArray("files_to_generate");
 		for (Object file : sFiles) {
 			if (file instanceof JSONObject) {
 				// each file object should have a specified filename key : value pair
 				String fileName = ((JSONObject) file).getString("filename");
 				// make empty list of params belonging to this file
-				ArrayList<Param> filePars = new ArrayList<>();
+				Map<String, Param> filePars = new HashMap<>();
 				// each file object might have a parameter array
 				if (((JSONObject) file).has("parameters")) {
 					// make and add a param object for each element in the array
@@ -105,7 +120,8 @@ public class Main {
 						}
 						lines.forEach(pString -> {
 							String[] parts = pString.split(",");
-							filePars.add(new Param(parts[0], parts[1], parts[2], parts[3]));
+							Param p = new Param(parts[0], parts[1], parts[2], parts[3]);
+							filePars.put(p.name, p);
 						});
 					}
 					// parameters is an array containing parameter dsecriptions
@@ -113,12 +129,13 @@ public class Main {
 						((JSONArray) parameters).forEach(par -> {
 							// description is a default parameter name
 							if (par instanceof String) {
-								filePars.add(params.get(par));
+								Param p = params.get(par);
+								filePars.put(p.name, p);
 							}
 							// description is a new custom parameter
 							if (par instanceof JSONArray) {
 								Param p = new Param((JSONArray) par);
-								filePars.add(p);
+								filePars.put(p.name, p);
 							}
 						});
 					}
@@ -127,21 +144,6 @@ public class Main {
 				fileParams.put(fileName, filePars);
 			}
 		}
-		
-		// generate all required files specified in settings
-		System.out.println("Generating specified files...");
-		try {
-			makeFiles();
-		} catch (NullPointerException e) {
-			e.printStackTrace();
-		}
-		
-		// Indicate ending for user.
-		String exit =
-					"\nSuccessfully finished generating " + dirName + " Subsystem!\n" +
-					"Please do check the output files in ./" + dirName +
-					" and take any possible warnings provided above into account";
-		System.out.println(exit);
 	}
 	
 	private static void makeDirs() {
@@ -180,11 +182,11 @@ public class Main {
 	
 	private static void makeFiles() {
 		files.forEach((fileName,baseTemplate) -> {
-			ArrayList<String> lines = processTemplate(baseTemplate);
-			ArrayList<Param> pars = fileParams.get(fileName);
-			pars.forEach(par -> lines.add(par.toString()));
+			Map<String, Param> pars = fileParams.get(fileName);
+			ArrayList<String> codeLines = processTemplate(baseTemplate, pars);
+			processParams(codeLines, fileName);
 			Utilities.writeLinesToFile(
-							lines,
+							codeLines,
 							"./" + dirName + "/" + fileName,
 							overwriteExisting
 			);
@@ -228,6 +230,36 @@ public class Main {
 		removeTemplateComments(codeLines);
 		processParameters(codeLines);
 		Utilities.writeLinesToFile(codeLines,"./" + dirName + "/parameters.c", overwriteExisting);
+	}
+	
+	private static void processParams(ArrayList<String> lines, String fileName) {
+		Iterator<String> itr = lines.iterator();
+		int lineNumber = -1;
+		int size = lines.size() - 1;
+		while (lineNumber < size){
+			lineNumber++;
+			
+			String line = lines.get(lineNumber);
+			String trimLine = line.trim();
+			String[] parts = trimLine.split(" ");
+			if (2 == parts.length && parts[0].equals("$param$")) {
+				StringBuilder code = new StringBuilder();
+				String codeSection = parts[1];
+				// generate code for each param here
+				Map<String, Param> pars = fileParams.get(fileName);
+				pars.forEach((name, par) -> {
+					code.append("\n");
+					code.append("Add ");
+					code.append(par.name);
+					code.append(" parameter ");
+					code.append(codeSection);
+					code.append(" code section here!");
+					code.append("\n");
+				});
+				lines.remove(lineNumber);
+				lines.add(lineNumber, code.toString());
+			}
+		}
 	}
 
 	private static void processParameters(ArrayList<String> code) {
@@ -292,7 +324,7 @@ public class Main {
 				String defaultValue = "";
 				String dataType = "";
 				Param defaults = null;
-				int enumValue = -1;
+				int id = -1;
 				// find class describing how to generate code for this param
 				if (1 == parts.length) {
 					// $param$
@@ -312,7 +344,7 @@ public class Main {
 						itr.remove();
 						continue;
 					} else {
-						enumValue = defaults.enumValue;
+						id = defaults.id;
 						dataType = defaults.dataType;
 						defaultValue = defaults.defaultValue;
 					}
@@ -344,7 +376,7 @@ public class Main {
 					}
 					if (!parts[4].equals("default")) {
 						try {
-							enumValue = Integer.parseInt(parts[4]);
+							id = Integer.parseInt(parts[4]);
 						} catch (NumberFormatException e) {
 							System.err.println("Error: Enum value for " + paramId + " is not " +
 											"a number! parameter not included!");
@@ -361,7 +393,7 @@ public class Main {
 					}
 					if (!parts[4].equals("default")) {
 						try {
-							enumValue = Integer.parseInt(parts[4]);
+							id = Integer.parseInt(parts[4]);
 						} catch (NumberFormatException e) {
 							System.err.println("Error: Enum value for " + paramId + " is not " +
 											"a number! parameter not included!");
@@ -370,7 +402,7 @@ public class Main {
 					System.err.println("Warning: Excessive input for " + paramId + " " +
 									" parameters beyond enumValue ignored");
 				}
-				Param newParam = new Param(enumValue, paramId, dataType, defaultValue);
+				Param newParam = new Param(id, paramId, dataType, defaultValue);
 				ParamCode par = ParamDefaults.getCodeGeneratorClass(newParam);
 				params.add(par);
 				// remove the tag line from code output
@@ -398,10 +430,12 @@ public class Main {
 	 * @return
 	 *      A list of code lines generated from the specified template.
 	 */
-	private static ArrayList<String> processTemplate(String templateFile) {
+	private static ArrayList<String> processTemplate(
+					String templateFile,
+					Map<String, Param> parameters) {
 		// Use empty initial set of variables
 		HashMap<String, String> vars = new HashMap<>();
-		return processTemplate(templateFile, vars);
+		return processTemplate(templateFile, parameters, vars);
 	}
 	
 	/**
@@ -421,14 +455,17 @@ public class Main {
 	 *
 	 * @param templateFile
 	 *      Specified template file to generate code lines from.
-	 * @param vars
+	 * @param variables
 	 *      Specified initial variables as (key,value) pairs.
 	 * @return
 	 *      A list of code lines generated from the specified template.
 	 */
 	private static ArrayList<String> processTemplate(
 					String templateFile,
-					HashMap<String, String> vars) {
+					Map<String, Param> parameters,
+					HashMap<String, String> variables) {
+		// make local copy so parent variables aren't modified
+		HashMap<String, String> vars = new HashMap<>(variables);
 		// read code from template file
 		ArrayList<String> code = Utilities.readLinesFromFile(templateDir + templateFile);
 		if (null == code) {
@@ -436,6 +473,7 @@ public class Main {
 			return null;
 		}
 		
+		// remove comments beforehand just in case to prevent misinterpretation
 		removeTemplateComments(code);
 		
 		// check if templateFile specifies additional variables
@@ -471,31 +509,227 @@ public class Main {
 			code.set(lineNumber, str);
 		}
 		
-		// check if the templateFile specifies additional templates
+		// check for commands
 		lineNumber = -1;
 		size = code.size() - 1;
 		while (lineNumber < size){
 			lineNumber++;
-			String str = code.get(lineNumber);
-			String trimStr = str.trim();
-			String[] parts = trimStr.split(" ");
-			// if current line identifies another template file...
-			if (2 == parts.length && parts[0].equals("$template$")) {
-				// call this function recursively for sub-template
-				ArrayList<String> temp = processTemplate(parts[1], vars);
-				if (null == temp) {
-					// nothing read from file, user is already warned
-					continue;
-				}
-				// replace line with code read from template
+			String line = code.get(lineNumber);
+			ArrayList<String> temp = parseCommand(line, parameters, variables);
+			if (null != temp) {
+				// line was a command and should be replaced with generated code
 				code.remove(lineNumber);
 				size--;
 				code.addAll(lineNumber, temp);
 				size += temp.size();
+				// recheck the current linenumber if line removed and nothing added
+				if (temp.size() == 0) {
+					lineNumber--;
+				}
 			}
 		}
-		
 		return code;
+	}
+	
+	// process a template in order to fill in specific parameter values
+	private static ArrayList<String> processTemplate(
+					String templateFile,
+					Map<String, Param> parameters,
+					HashMap<String, String> variables,
+					Param param
+	) {
+		ArrayList<String> lines = processTemplate(templateFile, parameters,
+						variables);
+		fillInParam(lines, param);
+		return lines;
+	}
+	
+	// command results in a new set of code lines
+	public static ArrayList<String> parseCommand(
+					String line,
+					Map<String, Param> parameters,
+					HashMap<String, String> variables
+	) {
+		// try to find $command$ section in provided line
+		if (null == line) {
+			System.err.println("Error: Line to check for command was null!");
+			return null;
+		}
+		char[] chars = line.toCharArray();
+		int c_start = Utilities.findNext('$', chars, 0);
+		if (-1 == c_start) {
+			// no starting $ found, not a command -> no additional action needed
+			return null;
+		} else {
+			// need to parse what's in between $ characters...
+			c_start = c_start +1;
+		}
+		int c_end = Utilities.findNext('$', chars, c_start);
+		if (-1 == c_end) {
+			System.err.println("Error: No end '$' found for command in line: " +
+							line + " : Line removed!");
+			return new ArrayList<>();
+		}
+		
+		// know what the command inbetween command identifier $$ is -> execute it
+		String cmd = line.substring(c_start, c_end);
+		switch (cmd) {
+			case "p-template" :
+				return pTemplateCmd(line, c_end, parameters, variables);
+			case "p-line" :
+				return pLineCmd(line, c_end, parameters);
+			case "template" :
+				return templateCmd(line, c_end, parameters, variables);
+			default :
+				System.err.println("Error: Unrecognized command : " + cmd);
+				return new ArrayList<>();
+		}
+	}
+	
+	private static ArrayList<String> pTemplateCmd(
+					String line,
+					int index,
+					Map<String, Param> parameters,
+					HashMap<String, String> variables
+	) {
+		if (null == parameters) {
+			return null;
+		}
+		ArrayList<String> lines = new ArrayList<>();
+		char[] chars = line.toCharArray();
+		int p_list_start = Utilities.findNext('[', chars, index) + 1;
+		int p_list_end = Utilities.findNext(']', chars, p_list_start);
+		// have a template to fill in for a list of parameters
+		String[] params = line.substring(p_list_start, p_list_end).split("\\|");
+		String template = line.substring(p_list_end + 2, chars.length);
+		// if keyword all is used in list -> fill template for all params
+		for (String p : params) {
+			if (p.equals("all")) {
+				// for all parameters
+				parameters.forEach((name, par) -> {
+					// fill in the template with values of par
+					ArrayList<String> newLines = processTemplate(template, null,
+									variables, par);
+					if (null != newLines) {
+						lines.addAll(newLines);
+					}
+				});
+				return lines;
+			}
+		}
+		// only fill template for specified parameters
+		for (String p : params) {
+			// fill in the template
+			Param par = parameters.get(p);
+			if (null == par) {
+				System.err.println("Error: Unknown parameter : " + p + " : Parameter " +
+								"skipped!");
+				continue;
+			}
+			ArrayList<String> newLines = processTemplate(template, null,
+							variables, par);
+			if (null != newLines) {
+				lines.addAll(newLines);
+			}
+		}
+		return lines;
+	}
+	
+	private static ArrayList<String> pLineCmd(
+					String line,
+					int index,
+					Map<String, Param> parameters
+	) {
+		ArrayList<String> lines = new ArrayList<>();
+		char[] chars = line.toCharArray();
+		int p_list_start = Utilities.findNext('[', chars, index);
+		if (-1 == p_list_start) {
+			System.err.println("Error: no parameter list provided for p-line " +
+							"command : " + line + " : Line removed!");
+			return new ArrayList<>();
+		} else {
+			// need to read whats in between list identifiers
+			p_list_start = p_list_start + 1;
+		}
+		int p_list_end = Utilities.findNext(']', chars, p_list_start);
+		if (-1 == p_list_end) {
+			System.err.println("Error: badly formatted parameter list provided " +
+							"for p-line command : " + line + " : Line removed!");
+			return new ArrayList<>();
+		}
+		// have a code line to fill in for a list of parameters
+		String[] params = line.substring(p_list_start, p_list_end).split("\\|");
+		String paramLine = line.substring(p_list_end + 2, chars.length);
+		// if keyword all is used in list -> fill line for all params
+		for (String p : params) {
+			if (p.equals("all")) {
+				// for all parameters
+				parameters.forEach((name, par) -> {
+					// fill in the code line with values of par
+					lines.add(fillInParam(paramLine, par));
+				});
+				return lines;
+			}
+		}
+		// only fill line for specified parameters
+		for (String p : params) {
+			// fill in the template
+			Param par = parameters.get(p);
+			if (null == par) {
+				System.err.println("Error: Unknown parameter : " + p + " : Parameter " +
+								"skipped!");
+				continue;
+			}
+			lines.add(fillInParam(paramLine, par));
+		}
+		return lines;
+	}
+	
+	private static ArrayList<String> templateCmd(
+					String line,
+					int index,
+					Map<String, Param> parameters,
+					HashMap<String, String> variables
+	) {
+		char[] chars = line.toCharArray();
+		int t_name_start = index + 2;
+		if (t_name_start >= chars.length) {
+			System.err.println("Error: No template name specified for template " +
+							"command : " + line + " : Line removed!");
+			return new ArrayList<>();
+		}
+		int t_name_end = chars.length;
+		String templateName = line.substring(t_name_start, t_name_end);
+		ArrayList<String> newLines = processTemplate(templateName, parameters, variables);
+		if (null == newLines) {
+			// template not found, user is already warned, return empty
+			return new ArrayList<>();
+		}
+		return newLines;
+	}
+	
+	private static void fillInParam(ArrayList<String> lines, Param param) {
+		if (null == lines) {
+			return;
+		}
+		// loop through code lines, replace all var keys with var values
+		int lineNumber = -1;
+		int size = lines.size() - 1;
+		while (lineNumber < size){
+			lineNumber++;
+			String line = lines.get(lineNumber);
+			line = fillInParam(line, param);
+			lines.set(lineNumber, line);
+		}
+	}
+	
+	private static String fillInParam(String line, Param param) {
+			line = line.replace("id", param.id + "");
+			line = line.replace("p_dataType", param.dataType);
+			line = line.replace("p_enumName", param.enumName);
+			line = line.replace("p_name", param.name);
+			line = line.replace("p_defaultValue", param.defaultValue);
+			return line;
 	}
 
 	/**
