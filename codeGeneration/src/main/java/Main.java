@@ -24,10 +24,7 @@ public class Main {
 	private static Map<String, Map<String, Param>> fileParams =
 					new HashMap<>();
 	
-	
-	// Map of code generation classes for each parameter
-	private static Map<String, Param> paramCodeGeneration;
-	private static String templateDir = "templates/";
+	private static final String TEMPLATE_DIR = "templates/";
 	
 	private static final String SETTINGS_FILE = "settings.json";
 	private static JSONObject settings;
@@ -203,37 +200,8 @@ public class Main {
 			System.out.println("Error deleting " + dirName + " folder!");
 		}
 	}
-
-	private static void generateFmFiles() {
-		ArrayList<String> codeLines;
-		// Use fm.h template to generate a fm.h file, removing template comments
-		codeLines = Utilities.readLinesFromFile("templates/fm.h");
-		removeTemplateComments(codeLines);
-		Utilities.writeLinesToFile(codeLines,"./" + dirName + "/fm.h",
-						overwriteExisting);
-
-		// Use fm.c template to generate a fm.c file, removing template comments
-		codeLines = Utilities.readLinesFromFile("templates/fm.c");
-		removeTemplateComments(codeLines);
-		Utilities.writeLinesToFile(codeLines,"./" + dirName + "/fm.c", overwriteExisting);
-	}
-
-	private static void generateParameterFiles() {
-		ArrayList<String> codeLines;
-		// generate parameters.h file, removing template comments
-		codeLines = Utilities.readLinesFromFile("templates/parameters.h");
-		removeTemplateComments(codeLines);
-		Utilities.writeLinesToFile(codeLines,"./" + dirName + "/parameters.h", overwriteExisting);
-		
-		// generate parameters.c file, removing template comments
-		codeLines = Utilities.readLinesFromFile("templates/parameters.c");
-		removeTemplateComments(codeLines);
-		processParameters(codeLines);
-		Utilities.writeLinesToFile(codeLines,"./" + dirName + "/parameters.c", overwriteExisting);
-	}
 	
 	private static void processParams(ArrayList<String> lines, String fileName) {
-		Iterator<String> itr = lines.iterator();
 		int lineNumber = -1;
 		int size = lines.size() - 1;
 		while (lineNumber < size){
@@ -258,155 +226,6 @@ public class Main {
 				});
 				lines.remove(lineNumber);
 				lines.add(lineNumber, code.toString());
-			}
-		}
-	}
-
-	private static void processParameters(ArrayList<String> code) {
-		ArrayList<ParamCode> params = new ArrayList<>();
-		findParams(code, params);
-		
-		//add set, get, init and mem_pool code sections for each parameter.
-		int setParams = findLine("$setParams$", code);
-		params.forEach(param -> code.add(setParams, param.setterFunc()));
-		int getParams = findLine("$getParams$", code);
-		params.forEach(param -> code.add(getParams, param.getterFunc()));
-		int initParams = findLine("$initParams$", code);
-		params.forEach(param -> code.add(initParams, param.initFunc()));
-		int mem_pool = findLine("$mem_pool$", code);
-		params.forEach(param -> code.add(mem_pool, param.memPoolStruct()));
-		// miscellaneous parameter specific code
-		int par_specific = findLine("$par_specific$", code);
-		params.forEach(param -> code.add(par_specific, param.parSpecific()));
-	}
-	
-	/**
-	 * Attempts to find a line containing the specified identifier String.
-	 * Returns the linenumber of first occurrence if found, return -1 otherwise.
-	 *
-	 * @param identifier
-	 *      String to look for in specified code.
-	 * @param code
-	 *      List of code lines to look in.
-	 * @return
-	 *      Line Number, first occurrence of identifier in list of code lines.
-	 */
-	private static int findLine(String identifier, ArrayList<String> code) {
-		Iterator<String> itr = code.iterator();
-		int res = -1;
-		while (itr.hasNext()) {
-			res++;
-			String str = itr.next();
-			if (str.contains(identifier)) {
-				itr.remove();
-				break;
-			}
-		}
-		return res;
-	}
-
-	private static void findParams(ArrayList<String> code,
-	                               ArrayList<ParamCode> params) {
-		// null check
-		if (null == code || null == params) {
-			return;
-		}
-		// loop through code lines, iterator for safe removal in loop
-		Iterator<String> itr = code.iterator();
-		while (itr.hasNext()) {
-			// if next string identifies a parameter
-			String str = itr.next();
-			if (str.contains("$param$")) {
-				// remove leading & trailing whitespace, split on spaces
-				String trim = str.trim();
-				String[] parts = trim.split(" ");
-				String paramId = "";
-				String defaultValue = "";
-				String dataType = "";
-				Param defaults = null;
-				int id = -1;
-				// find class describing how to generate code for this param
-				if (1 == parts.length) {
-					// $param$
-					System.err.println("Warning: Empty $param$ skipped from template!");
-					// skip this one
-					itr.remove();
-					continue;
-				}
-				if (1 < parts.length) {
-					// load default values for parameter
-					paramId = parts[1];
-					defaults = paramCodeGeneration.get(paramId);
-					if (null == defaults) {
-						System.err.println("Parameter class " + parts[1] + " not found!" +
-										"parameter not included!");
-						// skip this one
-						itr.remove();
-						continue;
-					} else {
-						id = defaults.id;
-						dataType = defaults.dataType;
-						defaultValue = defaults.defaultValue;
-					}
-				}
-				if (2 == parts.length) {
-					// $param$ some_name
-					System.err.println("Warning: default not specified! " +
-									"Using code generation defaults for " + paramId + "!");
-				} else if (3 == parts.length) {
-					// $param$ some_name some_value
-					if (!parts[2].equals("default")) {
-						defaultValue = parts[2];
-					}
-				} else if (4 == parts.length) {
-					// $param$ some_name some_value some_type
-					if (!parts[2].equals("default")) {
-						defaultValue = parts[2];
-					}
-					if (!parts[3].equals("default")) {
-						dataType = parts[3];
-					}
-				} else if (5 == parts.length) {
-					// $param$ some_name some_value some_type some_number
-					if (!parts[2].equals("default")) {
-						defaultValue = parts[2];
-					}
-					if (!parts[3].equals("default")) {
-						dataType = parts[3];
-					}
-					if (!parts[4].equals("default")) {
-						try {
-							id = Integer.parseInt(parts[4]);
-						} catch (NumberFormatException e) {
-							System.err.println("Error: Enum value for " + paramId + " is not " +
-											"a number! parameter not included!");
-						}
-					}
-				} else if (5 < parts.length) {
-					// Even more input specified...
-					// $param$ some_name some_value some_type some_number x x x x x x
-					if (!parts[2].equals("default")) {
-						defaultValue = parts[2];
-					}
-					if (!parts[3].equals("default")) {
-						dataType = parts[3];
-					}
-					if (!parts[4].equals("default")) {
-						try {
-							id = Integer.parseInt(parts[4]);
-						} catch (NumberFormatException e) {
-							System.err.println("Error: Enum value for " + paramId + " is not " +
-											"a number! parameter not included!");
-						}
-					}
-					System.err.println("Warning: Excessive input for " + paramId + " " +
-									" parameters beyond enumValue ignored");
-				}
-				Param newParam = new Param(id, paramId, dataType, defaultValue);
-				ParamCode par = ParamDefaults.getCodeGeneratorClass(newParam);
-				params.add(par);
-				// remove the tag line from code output
-				itr.remove();
 			}
 		}
 	}
@@ -467,7 +286,7 @@ public class Main {
 		// make local copy so parent variables aren't modified
 		HashMap<String, String> vars = new HashMap<>(variables);
 		// read code from template file
-		ArrayList<String> code = Utilities.readLinesFromFile(templateDir + templateFile);
+		ArrayList<String> code = Utilities.readLinesFromFile(TEMPLATE_DIR + templateFile);
 		if (null == code) {
 			// nothing read from file, user is already warned
 			return null;
