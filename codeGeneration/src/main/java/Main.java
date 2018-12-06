@@ -181,7 +181,6 @@ public class Main {
 		files.forEach((fileName,baseTemplate) -> {
 			Map<String, Param> pars = fileParams.get(fileName);
 			ArrayList<String> codeLines = processTemplate(baseTemplate, pars);
-			processParams(codeLines, fileName);
 			Utilities.writeLinesToFile(
 							codeLines,
 							"./" + dirName + "/" + fileName,
@@ -198,35 +197,6 @@ public class Main {
 					.forEach(File::delete);
 		} catch (IOException e) {
 			System.out.println("Error deleting " + dirName + " folder!");
-		}
-	}
-	
-	private static void processParams(ArrayList<String> lines, String fileName) {
-		int lineNumber = -1;
-		int size = lines.size() - 1;
-		while (lineNumber < size){
-			lineNumber++;
-			
-			String line = lines.get(lineNumber);
-			String trimLine = line.trim();
-			String[] parts = trimLine.split(" ");
-			if (2 == parts.length && parts[0].equals("$param$")) {
-				StringBuilder code = new StringBuilder();
-				String codeSection = parts[1];
-				// generate code for each param here
-				Map<String, Param> pars = fileParams.get(fileName);
-				pars.forEach((name, par) -> {
-					code.append("\n");
-					code.append("Add ");
-					code.append(par.name);
-					code.append(" parameter ");
-					code.append(codeSection);
-					code.append(" code section here!");
-					code.append("\n");
-				});
-				lines.remove(lineNumber);
-				lines.add(lineNumber, code.toString());
-			}
 		}
 	}
 	
@@ -254,7 +224,7 @@ public class Main {
 					Map<String, Param> parameters) {
 		// Use empty initial set of variables
 		HashMap<String, String> vars = new HashMap<>();
-		return processTemplate(templateFile, parameters, vars);
+		return processTemplate(templateFile, parameters, vars, null);
 	}
 	
 	/**
@@ -282,7 +252,8 @@ public class Main {
 	private static ArrayList<String> processTemplate(
 					String templateFile,
 					Map<String, Param> parameters,
-					HashMap<String, String> variables) {
+					HashMap<String, String> variables,
+					Param param) {
 		// make local copy so parent variables aren't modified
 		HashMap<String, String> vars = new HashMap<>(variables);
 		// read code from template file
@@ -328,6 +299,11 @@ public class Main {
 			code.set(lineNumber, str);
 		}
 		
+		// If template is being processed for a specific param, fill in it's values
+		if (null != param) {
+			fillInParam(code, param);
+		}
+		
 		// check for commands
 		lineNumber = -1;
 		size = code.size() - 1;
@@ -350,21 +326,8 @@ public class Main {
 		return code;
 	}
 	
-	// process a template in order to fill in specific parameter values
-	private static ArrayList<String> processTemplate(
-					String templateFile,
-					Map<String, Param> parameters,
-					HashMap<String, String> variables,
-					Param param
-	) {
-		ArrayList<String> lines = processTemplate(templateFile, parameters,
-						variables);
-		fillInParam(lines, param);
-		return lines;
-	}
-	
 	// command results in a new set of code lines
-	public static ArrayList<String> parseCommand(
+	private static ArrayList<String> parseCommand(
 					String line,
 					Map<String, Param> parameters,
 					HashMap<String, String> variables
@@ -389,7 +352,7 @@ public class Main {
 			return new ArrayList<>();
 		}
 		
-		// know what the command inbetween command identifier $$ is -> execute it
+		// know what the command in between command identifier $$ is -> execute it
 		String cmd = line.substring(c_start, c_end);
 		switch (cmd) {
 			case "p-template" :
@@ -398,6 +361,8 @@ public class Main {
 				return pLineCmd(line, c_end, parameters);
 			case "template" :
 				return templateCmd(line, c_end, parameters, variables);
+			case "param" :
+				//TODO : could make a command to add a new param type from template
 			default :
 				System.err.println("Error: Unrecognized command : " + cmd);
 				return new ArrayList<>();
@@ -410,9 +375,6 @@ public class Main {
 					Map<String, Param> parameters,
 					HashMap<String, String> variables
 	) {
-		if (null == parameters) {
-			return null;
-		}
 		ArrayList<String> lines = new ArrayList<>();
 		int p_list_start = line.indexOf('[', index);
 		if (-1 == p_list_start) {
@@ -431,18 +393,12 @@ public class Main {
 		}
 		// have a template to fill in for a list of parameters
 		String[] params = line.substring(p_list_start, p_list_end).split("\\|");
-		String template = line.substring(p_list_end + 2);
 		// if keyword all is used in list -> fill template for all params
 		for (String p : params) {
 			if (p.equals("all")) {
 				// for all parameters
 				parameters.forEach((name, par) -> {
-					// fill in the template with values of par
-					ArrayList<String> newLines = processTemplate(template, null,
-									variables, par);
-					if (null != newLines) {
-						lines.addAll(newLines);
-					}
+					addParLines(lines, line, p_list_end, par, variables);
 				});
 				return lines;
 			}
@@ -456,13 +412,54 @@ public class Main {
 								"skipped!");
 				continue;
 			}
-			ArrayList<String> newLines = processTemplate(template, null,
-							variables, par);
-			if (null != newLines) {
-				lines.addAll(newLines);
-			}
+			addParLines(lines, line, p_list_end, par, variables);
 		}
 		return lines;
+	}
+	
+	private static void addParLines(
+					ArrayList<String> lines,
+					String line,
+					int p_list_end,
+					Param par,
+					HashMap<String, String> variables
+	) {
+		String template = line.substring(p_list_end + 2);
+		template = fillInParam(template, par);
+		Map<String, Param> parMap = new HashMap<>();
+		parMap.put(par.name, par);
+		// fill in the template with values of par
+		ArrayList<String> newLines = processTemplate(template, parMap,
+						variables, par);
+		if (null != newLines && 0 == newLines.size()) {
+			// Warn user that the template is empty,
+			System.out.println("Warning: template " + template + " was empty!" +
+							" A comment line has been added in the output to indicate" +
+							" where the code for this template could be added.\n" +
+							"Either fill in the template, or manually add the code in" +
+							" the output at the marked location");
+			lines.add("\\\\ Add " + par.name + " code section here!");
+		} else if (null != newLines) {
+			lines.addAll(newLines);
+		} else {
+			System.out.println("Warning: the template " + template + " to " +
+							"process for parameter " + par.name + " was missing!" +
+							" A blank template has been created at this location\n" +
+							"A comment line has been added in the output to indicate" +
+							" where the code for this template could be added." +
+							"Either fill in the template, or manually add the code in" +
+							" the output at the marked location");
+			// Create a blank template file and warn user to fill it in
+			ClassLoader classloader = Thread.currentThread().getContextClassLoader();
+			File settings = new File(classloader.getResource("settings.json").getFile());
+			Path localPath = settings.toPath().getParent().resolve(TEMPLATE_DIR);
+			Utilities.writeLinesToFile(
+							null,
+							localPath + "/" + template,
+							overwriteExisting
+			);
+			lines.add("\\\\ Add " + par.name + " code section here!");
+		}
 	}
 	
 	private static ArrayList<String> pLineCmd(
@@ -527,7 +524,8 @@ public class Main {
 			return new ArrayList<>();
 		}
 		String templateName = line.substring(t_name_start);
-		ArrayList<String> newLines = processTemplate(templateName, parameters, variables);
+		ArrayList<String> newLines = processTemplate(templateName, parameters,
+						variables, null);
 		if (null == newLines) {
 			// template not found, user is already warned, return empty
 			return new ArrayList<>();

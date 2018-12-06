@@ -115,7 +115,7 @@ public class Utilities {
 	                                     String fileName,
 	                                     boolean overwriteExisting) {
 		// Find the referenced location, check if should be overridden
-		Path filePath= Paths.get(fileName);
+		Path filePath = Paths.get(fileName);
 		if (Files.exists(filePath)) {
 			if (overwriteExisting) {
 				try {
@@ -127,11 +127,27 @@ public class Utilities {
 			} else {
 				System.err.println("Warning: file " + fileName + " already exists and" +
 								" overwriting is disabled. This file was skipped!");
+				return;
 			}
 		}
+		
+		// check if directories for file exist, if not create them
+		Path parentDir = filePath.getParent();
+		if (!Files.exists(parentDir)) {
+			try {
+				Files.createDirectories(parentDir);
+			} catch (IOException e) {
+				System.err.println("Error: Unable to create parent directories for " +
+								fileName);
+			}
+		}
+		
 		// try to open with BufferedReader resource -> gets closed automatically
 		try (BufferedWriter br = Files.newBufferedWriter(filePath,
 						Charset.forName("UTF-8"))){
+			if (null == code) {
+				return;
+			}
 			// Loop through each list item, write to the file with a linebreak
 			code.forEach((str) -> {
 				if (null == str) return;
