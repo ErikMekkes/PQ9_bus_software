@@ -555,8 +555,7 @@ public class Main {
 			System.err.println("Error: Line to check for command was null!");
 			return null;
 		}
-		char[] chars = line.toCharArray();
-		int c_start = Utilities.findNext('$', chars, 0);
+		int c_start = line.indexOf('$');
 		if (-1 == c_start) {
 			// no starting $ found, not a command -> no additional action needed
 			return null;
@@ -564,7 +563,7 @@ public class Main {
 			// need to parse what's in between $ characters...
 			c_start = c_start +1;
 		}
-		int c_end = Utilities.findNext('$', chars, c_start);
+		int c_end = line.indexOf('$', c_start);
 		if (-1 == c_end) {
 			System.err.println("Error: No end '$' found for command in line: " +
 							line + " : Line removed!");
@@ -596,12 +595,24 @@ public class Main {
 			return null;
 		}
 		ArrayList<String> lines = new ArrayList<>();
-		char[] chars = line.toCharArray();
-		int p_list_start = Utilities.findNext('[', chars, index) + 1;
-		int p_list_end = Utilities.findNext(']', chars, p_list_start);
+		int p_list_start = line.indexOf('[', index);
+		if (-1 == p_list_start) {
+			System.err.println("Error: no parameter list provided for p-line " +
+							"command : " + line + " : Line removed!");
+			return new ArrayList<>();
+		} else {
+			// need to read whats in between list identifiers
+			p_list_start = p_list_start + 1;
+		}
+		int p_list_end = line.indexOf(']', index);
+		if (-1 == p_list_end) {
+			System.err.println("Error: badly formatted parameter list provided " +
+							"for p-line command : " + line + " : Line removed!");
+			return new ArrayList<>();
+		}
 		// have a template to fill in for a list of parameters
 		String[] params = line.substring(p_list_start, p_list_end).split("\\|");
-		String template = line.substring(p_list_end + 2, chars.length);
+		String template = line.substring(p_list_end + 2);
 		// if keyword all is used in list -> fill template for all params
 		for (String p : params) {
 			if (p.equals("all")) {
@@ -641,8 +652,7 @@ public class Main {
 					Map<String, Param> parameters
 	) {
 		ArrayList<String> lines = new ArrayList<>();
-		char[] chars = line.toCharArray();
-		int p_list_start = Utilities.findNext('[', chars, index);
+		int p_list_start = line.indexOf('[', index);
 		if (-1 == p_list_start) {
 			System.err.println("Error: no parameter list provided for p-line " +
 							"command : " + line + " : Line removed!");
@@ -651,7 +661,7 @@ public class Main {
 			// need to read whats in between list identifiers
 			p_list_start = p_list_start + 1;
 		}
-		int p_list_end = Utilities.findNext(']', chars, p_list_start);
+		int p_list_end = line.indexOf(']', p_list_start);
 		if (-1 == p_list_end) {
 			System.err.println("Error: badly formatted parameter list provided " +
 							"for p-line command : " + line + " : Line removed!");
@@ -659,7 +669,7 @@ public class Main {
 		}
 		// have a code line to fill in for a list of parameters
 		String[] params = line.substring(p_list_start, p_list_end).split("\\|");
-		String paramLine = line.substring(p_list_end + 2, chars.length);
+		String paramLine = line.substring(p_list_end + 2);
 		// if keyword all is used in list -> fill line for all params
 		for (String p : params) {
 			if (p.equals("all")) {
@@ -691,15 +701,13 @@ public class Main {
 					Map<String, Param> parameters,
 					HashMap<String, String> variables
 	) {
-		char[] chars = line.toCharArray();
 		int t_name_start = index + 2;
-		if (t_name_start >= chars.length) {
+		if (t_name_start >= line.length()) {
 			System.err.println("Error: No template name specified for template " +
 							"command : " + line + " : Line removed!");
 			return new ArrayList<>();
 		}
-		int t_name_end = chars.length;
-		String templateName = line.substring(t_name_start, t_name_end);
+		String templateName = line.substring(t_name_start);
 		ArrayList<String> newLines = processTemplate(templateName, parameters, variables);
 		if (null == newLines) {
 			// template not found, user is already warned, return empty

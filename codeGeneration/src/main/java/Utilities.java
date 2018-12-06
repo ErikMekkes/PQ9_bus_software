@@ -194,19 +194,4 @@ public class Utilities {
 		}
 		return sb.toString();
 	}
-	
-	public static int findNext(char c, char[] chars, int start) {
-		if (0 > start ) {
-			return -1;
-		}
-		int index = start;
-		int size = chars.length;
-		while (index < size) {
-			if (c == chars[index]) {
-				return index;
-			}
-			index++;
-		}
-		return -1;
-	}
 }
