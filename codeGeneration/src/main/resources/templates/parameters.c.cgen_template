@@ -33,7 +33,7 @@ void init_parameters() {
  */
 void get_parameter(param_id pid, void *value, uint8_t *buf, uint16_t *size) {
 	switch (pid) {
-		$p-template$ [all] get_parameter
+		$p-template$ [all] get_parameter.cgen_template
 		default :
 			*size = 0;
 	}
@@ -45,7 +45,7 @@ void get_parameter(param_id pid, void *value, uint8_t *buf, uint16_t *size) {
 bool set_parameter(param_id pid, void* value) {
 	bool res = true;
 	switch (pid) {
-		$p-template$ [adb_deb|SBSYS_reset_clr_int_wdg|SBSYS_reset_cmd_int_wdg|SBSYS_sensor_loop] set_parameter
+		$p-template$ [adb_deb|SBSYS_reset_clr_int_wdg|SBSYS_reset_cmd_int_wdg|SBSYS_sensor_loop] set_parameter.cgen_template
 		default :
 			res = false;
 	}

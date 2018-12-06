@@ -11,8 +11,8 @@ $templat$
 $emplate$
 $template$ 
 $template$ var1
-$template$ subTemplate1
-$template$ subTemplate2
+$template$ subTemplate1.cgen_template
+$template$ subTemplate2.cgen_template
 y = x?
 foo =  var1
 the

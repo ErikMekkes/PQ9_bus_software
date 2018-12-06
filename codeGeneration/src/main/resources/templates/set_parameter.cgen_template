@@ -1,0 +1,3 @@
+		case p_enumName :
+		$template$ p_name/set_parameter.cgen_template
+			break;

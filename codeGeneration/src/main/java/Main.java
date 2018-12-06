@@ -24,8 +24,9 @@ public class Main {
 	private static Map<String, Map<String, Param>> fileParams =
 					new HashMap<>();
 	
+	private static final String TEMPLATE_EXTENSION = ".cgen_template";
+	private static final int EXTENSION_LENGTH = 14;
 	private static final String TEMPLATE_DIR = "templates/";
-	
 	private static final String SETTINGS_FILE = "settings.json";
 	private static JSONObject settings;
 
@@ -73,7 +74,8 @@ public class Main {
 				} else {
 					// use the filename to search for a base template
 					files.put(((JSONObject) file).getString("filename"),
-									((JSONObject) file).getString("filename"));
+									((JSONObject) file).getString("filename") +
+													TEMPLATE_EXTENSION);
 				}
 			}
 		}
@@ -179,6 +181,7 @@ public class Main {
 	
 	private static void makeFiles() {
 		files.forEach((fileName,baseTemplate) -> {
+			System.out.println("\nProcessing file : " + fileName);
 			Map<String, Param> pars = fileParams.get(fileName);
 			ArrayList<String> codeLines = processTemplate(baseTemplate, pars);
 			Utilities.writeLinesToFile(
@@ -310,7 +313,7 @@ public class Main {
 		while (lineNumber < size){
 			lineNumber++;
 			String line = code.get(lineNumber);
-			ArrayList<String> temp = parseCommand(line, parameters, variables);
+			ArrayList<String> temp = parseCommand(line, parameters, variables, param);
 			if (null != temp) {
 				// line was a command and should be replaced with generated code
 				code.remove(lineNumber);
@@ -330,7 +333,8 @@ public class Main {
 	private static ArrayList<String> parseCommand(
 					String line,
 					Map<String, Param> parameters,
-					HashMap<String, String> variables
+					HashMap<String, String> variables,
+					Param param
 	) {
 		// try to find $command$ section in provided line
 		if (null == line) {
@@ -348,7 +352,7 @@ public class Main {
 		int c_end = line.indexOf('$', c_start);
 		if (-1 == c_end) {
 			System.err.println("Error: No end '$' found for command in line: " +
-							line + " : Line removed!");
+							line + " : Line ignored!");
 			return new ArrayList<>();
 		}
 		
@@ -360,7 +364,7 @@ public class Main {
 			case "p-line" :
 				return pLineCmd(line, c_end, parameters);
 			case "template" :
-				return templateCmd(line, c_end, parameters, variables);
+				return templateCmd(line, c_end, parameters, variables, param);
 			case "param" :
 				//TODO : could make a command to add a new param type from template
 			default :
@@ -379,7 +383,7 @@ public class Main {
 		int p_list_start = line.indexOf('[', index);
 		if (-1 == p_list_start) {
 			System.err.println("Error: no parameter list provided for p-line " +
-							"command : " + line + " : Line removed!");
+							"command : " + line + " : Line ignored!");
 			return new ArrayList<>();
 		} else {
 			// need to read whats in between list identifiers
@@ -388,7 +392,7 @@ public class Main {
 		int p_list_end = line.indexOf(']', index);
 		if (-1 == p_list_end) {
 			System.err.println("Error: badly formatted parameter list provided " +
-							"for p-line command : " + line + " : Line removed!");
+							"for p-line command : " + line + " : Line ignored!");
 			return new ArrayList<>();
 		}
 		// have a template to fill in for a list of parameters
@@ -421,45 +425,32 @@ public class Main {
 					ArrayList<String> lines,
 					String line,
 					int p_list_end,
-					Param par,
+					Param param,
 					HashMap<String, String> variables
 	) {
-		String template = line.substring(p_list_end + 2);
-		template = fillInParam(template, par);
+		int tmp_start = p_list_end + 2;
+		if (tmp_start >= line.length()) {
+			System.err.println("Error: No template name specified for template " +
+							"command : " + line + " : Line ignored!");
+			return;
+		}
+		int tmp_end = line.indexOf(TEMPLATE_EXTENSION, tmp_start);
+		if (tmp_end == -1) {
+			System.err.println("Error: Template extension missing for template " +
+							"command : " + line + " : Line ignored!");
+			return;
+		} else {
+			// need to include extension
+			tmp_end = tmp_end + EXTENSION_LENGTH;
+		}
+		String template = line.substring(tmp_start, tmp_end);
+		template = fillInParam(template, param);
 		Map<String, Param> parMap = new HashMap<>();
-		parMap.put(par.name, par);
+		parMap.put(param.name, param);
 		// fill in the template with values of par
 		ArrayList<String> newLines = processTemplate(template, parMap,
-						variables, par);
-		if (null != newLines && 0 == newLines.size()) {
-			// Warn user that the template is empty,
-			System.out.println("Warning: template " + template + " was empty!" +
-							" A comment line has been added in the output to indicate" +
-							" where the code for this template could be added.\n" +
-							"Either fill in the template, or manually add the code in" +
-							" the output at the marked location");
-			lines.add("\\\\ Add " + par.name + " code section here!");
-		} else if (null != newLines) {
-			lines.addAll(newLines);
-		} else {
-			System.out.println("Warning: the template " + template + " to " +
-							"process for parameter " + par.name + " was missing!" +
-							" A blank template has been created at this location\n" +
-							"A comment line has been added in the output to indicate" +
-							" where the code for this template could be added." +
-							"Either fill in the template, or manually add the code in" +
-							" the output at the marked location");
-			// Create a blank template file and warn user to fill it in
-			ClassLoader classloader = Thread.currentThread().getContextClassLoader();
-			File settings = new File(classloader.getResource("settings.json").getFile());
-			Path localPath = settings.toPath().getParent().resolve(TEMPLATE_DIR);
-			Utilities.writeLinesToFile(
-							null,
-							localPath + "/" + template,
-							overwriteExisting
-			);
-			lines.add("\\\\ Add " + par.name + " code section here!");
-		}
+						variables, param);
+		checkParamTemplateResult(lines, newLines, template, param);
 	}
 	
 	private static ArrayList<String> pLineCmd(
@@ -471,7 +462,7 @@ public class Main {
 		int p_list_start = line.indexOf('[', index);
 		if (-1 == p_list_start) {
 			System.err.println("Error: no parameter list provided for p-line " +
-							"command : " + line + " : Line removed!");
+							"command : " + line + " : Line ignored!");
 			return new ArrayList<>();
 		} else {
 			// need to read whats in between list identifiers
@@ -480,7 +471,7 @@ public class Main {
 		int p_list_end = line.indexOf(']', p_list_start);
 		if (-1 == p_list_end) {
 			System.err.println("Error: badly formatted parameter list provided " +
-							"for p-line command : " + line + " : Line removed!");
+							"for p-line command : " + line + " : Line ignored!");
 			return new ArrayList<>();
 		}
 		// have a code line to fill in for a list of parameters
@@ -515,22 +506,73 @@ public class Main {
 					String line,
 					int index,
 					Map<String, Param> parameters,
-					HashMap<String, String> variables
+					HashMap<String, String> variables,
+					Param param
 	) {
-		int t_name_start = index + 2;
-		if (t_name_start >= line.length()) {
+		int tmp_start = index + 2;
+		if (tmp_start >= line.length()) {
 			System.err.println("Error: No template name specified for template " +
-							"command : " + line + " : Line removed!");
+							"command : " + line + " : Line ignored!");
 			return new ArrayList<>();
 		}
-		String templateName = line.substring(t_name_start);
-		ArrayList<String> newLines = processTemplate(templateName, parameters,
-						variables, null);
-		if (null == newLines) {
-			// template not found, user is already warned, return empty
+		int tmp_end = line.indexOf(TEMPLATE_EXTENSION, tmp_start);
+		if (tmp_end == -1) {
+			System.err.println("Error: Template extension missing for template " +
+							"command : " + line + " : Line ignored!");
 			return new ArrayList<>();
+		} else {
+			// need to include extension
+			tmp_end = tmp_end + EXTENSION_LENGTH;
 		}
-		return newLines;
+		String template = line.substring(tmp_start, tmp_end);
+		ArrayList<String> newLines = processTemplate(template, parameters,
+						variables, param);
+		if (null == param) {
+			if (null == newLines) {
+				// template not found, user is already warned, return empty
+				return new ArrayList<>();
+			} else {
+				return newLines;
+			}
+		} else {
+			ArrayList<String> lines = new ArrayList<>();
+			return checkParamTemplateResult(lines, newLines, template, param);
+		}
+	}
+	
+	private static ArrayList<String> checkParamTemplateResult(
+					ArrayList<String> lines,
+					ArrayList<String> newLines,
+					String template,
+					Param param
+	) {
+		if (null != newLines && 0 == newLines.size()) {
+			// Warn user that the template is empty,
+			System.out.println("Warning: template " + param.name + "/" + template +
+							" was empty!" +
+							" A comment line has been added in the output to indicate" +
+							" where the code for this template could be added.");
+			lines.add("\\\\ Add " + param.name + " code section here!");
+		} else if (null != newLines) {
+			lines.addAll(newLines);
+		} else {
+			System.out.println("Warning: the template " + param.name + "/" +
+							template + " was missing!" +
+							" A blank template has been created at this location\n" +
+							"A comment line has been added in the output to indicate" +
+							" where the code for this template could be added.");
+			// Create a blank template file and warn user to fill it in
+			ClassLoader classloader = Thread.currentThread().getContextClassLoader();
+			File settings = new File(classloader.getResource("settings.json").getFile());
+			Path localPath = settings.toPath().getParent().resolve(TEMPLATE_DIR);
+			Utilities.writeLinesToFile(
+							null,
+							localPath + "/" + template,
+							overwriteExisting
+			);
+			lines.add("\\\\ Add " + param.name + " code section here!");
+		}
+		return lines;
 	}
 	
 	private static void fillInParam(ArrayList<String> lines, Param param) {

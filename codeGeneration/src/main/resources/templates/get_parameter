@@ -1,3 +1,0 @@
-		case p_enumName :
-		$p-template$ [all] p_name/get_parameter
-			break;
