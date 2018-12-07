@@ -7,7 +7,6 @@ import java.util.*;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-import parameter_ids.*;
 
 public class Main {
 	// main subsystem / directory name
