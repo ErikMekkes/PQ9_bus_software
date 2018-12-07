@@ -279,27 +279,85 @@ public class Main {
 	}
 	
 	private static void parseVariables(
-					String templateFile,
+					String template,
 					ArrayList<String> code,
 					HashMap<String, String> variables
 	) {
-		Iterator<String> itr = code.iterator();
-		while(itr.hasNext()) {
-			String str = itr.next();
-			String trimStr = str.trim();
-			String[] parts = trimStr.split(" ");
-			if (3== parts.length && parts[0].equals("$var$")) {
-				// if variable was already defined in parent, warn user
-				if (variables.containsKey(parts[1])) {
-					System.err.println("Warning: template " + templateFile +
-									" overrides parent template variable " + parts[1] +
-									" locally with value " + parts[2]);
-				}
-				// store variable in map as key, value
-				variables.put(parts[1], parts[2]);
-				itr.remove();
+		// loop through lines of code
+		int lineNumber = -1;
+		int size = code.size() - 1;
+		while (lineNumber < size) {
+			lineNumber++;
+			// check if line is a variable definition
+			String line = code.get(lineNumber);
+			if (parseVariable(line, template, variables)) {
+				// remove line from output
+				code.remove(lineNumber);
+				size--;
+				lineNumber--;
 			}
 		}
+	}
+	
+	private static boolean parseVariable(
+					String line,
+					String template,
+					Map<String, String> variables
+	) {
+		// try to find $command$ section in provided line
+		if (null == line) {
+			System.err.println("Error: Line to check for command was null!");
+			return false;
+		}
+		int c_start = line.indexOf('$');
+		if (-1 == c_start) {
+			// no starting $ found, not a command -> no additional action needed
+			return false;
+		} else {
+			// need to parse what's in between $ characters...
+			c_start = c_start +1;
+		}
+		int c_end = line.indexOf('$', c_start);
+		if (-1 == c_end) {
+			System.err.println("Error: No end '$' found for command in line: " +
+							line + " : Line ignored!");
+			return true;
+		}
+		
+		// found command in between $$ command identifiers -> execute command
+		String cmd = line.substring(c_start, c_end);
+		if (cmd.equals("var")) {
+			int v_name_start = line.indexOf(' ', c_end);
+			if (-1 == v_name_start) {
+				// no starting ' ', no name specified
+				System.err.println("Error: variable name undefined, no space found " +
+								"after $var$ command for : " + line +	" : Line ignored!");
+				return true;
+			} else {
+				// need to parse what's in between ' ' characters...
+				v_name_start = v_name_start +1;
+			}
+			int v_name_end = line.indexOf(' ', v_name_start);
+			if (-1 == v_name_end) {
+				System.err.println("Error: variable value undefined, no space " +
+								"found after variable name for : " + line + " : Line ignored!");
+				return true;
+			}
+			String v_name = line.substring(v_name_start, v_name_end);
+			String v_value = line.substring(v_name_end + 1);
+			// if variable was already defined in parent template, warn user
+			if (variables.containsKey(v_name)) {
+				System.err.println("Warning: template " + template +
+								" overrides parent template variable " + v_name +
+								" locally with value " + v_value);
+			}
+			// store variable in map as key, value
+			variables.put(v_name, v_value);
+			// remove line afterwards
+			return true;
+		}
+		// was a different command, do not remove line afterwards
+		return false;
 	}
 	
 	private static void fillInVariables(
