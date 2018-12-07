@@ -53,7 +53,7 @@ public class Utilities {
 		}
 		ArrayList<Param> params = new ArrayList<>();
 		lines.forEach(str -> {
-			String[] parts = str.split(",");
+			String[] parts = str.split(",", -1);
 			Param p = new Param(parts[0], parts[1], parts[2], parts[3]);
 			params.add(p);
 		});

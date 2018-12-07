@@ -109,18 +109,8 @@ public class Main {
 									"parameters");
 					// parameters is a filename containing parameter descriptions
 					if (parameters instanceof String) {
-						ArrayList<String> lines =
-										Utilities.readLinesFromFile((String) parameters);
-						if (null == lines) {
-							System.err.println("Eror: Parameter file " + parameters + " for" +
-											" " + fileName + " not found!");
-							continue;
-						}
-						lines.forEach(pString -> {
-							String[] parts = pString.split(",");
-							Param p = new Param(parts[0], parts[1], parts[2], parts[3]);
-							filePars.put(p.name, p);
-						});
+						ArrayList<Param> pars = Utilities.readParamCSV((String) parameters);
+						pars.forEach(p -> filePars.put(p.name, p));
 					}
 					// parameters is an array containing parameter dsecriptions
 					if (parameters instanceof JSONArray) {
