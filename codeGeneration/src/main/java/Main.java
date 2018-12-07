@@ -1,4 +1,5 @@
 import java.io.*;
+import java.net.URL;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -244,10 +245,12 @@ public class Main {
 	private static ArrayList<String> processTemplate(
 					String templateFile,
 					Map<String, Param> parameters,
-					HashMap<String, String> variables,
-					Param param) {
+					Map<String, String> variables,
+					Param param
+	) {
 		// make local copy so parent variables aren't modified
 		HashMap<String, String> vars = new HashMap<>(variables);
+		
 		// read code from template file
 		ArrayList<String> code = Utilities.readLinesFromFile(TEMPLATE_DIR + templateFile);
 		if (null == code) {
@@ -259,37 +262,10 @@ public class Main {
 		removeTemplateComments(code);
 		
 		// check if templateFile specifies additional variables
-		Iterator<String> itr = code.iterator();
-		while(itr.hasNext()) {
-			String str = itr.next();
-			String trimStr = str.trim();
-			String[] parts = trimStr.split(" ");
-			if (3== parts.length && parts[0].equals("$var$")) {
-				// if variable was already defined in parent, warn user
-				if (vars.containsKey(parts[1])) {
-					System.err.println("Warning: template " + templateFile +
-									" overrides parent template variable " + parts[1] +
-									" locally with value " + parts[2]);
-				}
-				// store variable in map as key, value
-				vars.put(parts[1], parts[2]);
-				itr.remove();
-			}
-		}
+		parseVariables(templateFile, code, vars);
 		
 		// loop through code lines, replace all var keys with var values
-		int lineNumber = -1;
-		int size = code.size() - 1;
-		while (lineNumber < size){
-			lineNumber++;
-			String str = code.get(lineNumber);
-			// loop through vars, if str contains var key replace with var value
-			for (String key : vars.keySet()) {
-				String value = vars.get(key);
-				str = str.replace(key, value);
-			}
-			code.set(lineNumber, str);
-		}
+		fillInVariables(code, vars);
 		
 		// If template is being processed for a specific param, fill in it's values
 		if (null != param) {
@@ -297,10 +273,80 @@ public class Main {
 		}
 		
 		// check for commands
-		lineNumber = -1;
-		size = code.size() - 1;
+		parseCommands(code, parameters, vars, param);
+		
+		return code;
+	}
+	
+	private static void parseVariables(
+					String templateFile,
+					ArrayList<String> code,
+					HashMap<String, String> variables
+	) {
+		Iterator<String> itr = code.iterator();
+		while(itr.hasNext()) {
+			String str = itr.next();
+			String trimStr = str.trim();
+			String[] parts = trimStr.split(" ");
+			if (3== parts.length && parts[0].equals("$var$")) {
+				// if variable was already defined in parent, warn user
+				if (variables.containsKey(parts[1])) {
+					System.err.println("Warning: template " + templateFile +
+									" overrides parent template variable " + parts[1] +
+									" locally with value " + parts[2]);
+				}
+				// store variable in map as key, value
+				variables.put(parts[1], parts[2]);
+				itr.remove();
+			}
+		}
+	}
+	
+	private static void fillInVariables(
+					ArrayList<String> code,
+					HashMap<String, String> variables
+	) {
+		int lineNumber = -1;
+		int size = code.size() - 1;
 		while (lineNumber < size){
 			lineNumber++;
+			String str = code.get(lineNumber);
+			// loop through vars, if str contains var key replace with var value
+			for (String key : variables.keySet()) {
+				String value = variables.get(key);
+				str = str.replace(key, value);
+			}
+			code.set(lineNumber, str);
+		}
+	}
+	
+	/**
+	 * Loops through the specified code lines and checks for commands. If a line
+	 * contains a command the command is executed and the line is replaced with
+	 * the result from the command. If a line does not contain a command no
+	 * action is taken, the line remains in the specified set of code.
+	 * @param code
+	 *      Code lines as a list of String objects.
+	 * @param parameters
+	 *      Map of all parameters specified for this code section.
+	 * @param variables
+	 *      Map of all variables specified for this code section.
+	 * @param param
+	 *      Optional parameter whose values should be filled in for this code
+	 *      section. Null if not specified.
+	 */
+	private static void parseCommands(
+					ArrayList<String> code,
+					Map<String, Param> parameters,
+					Map<String, String> variables,
+					Param param
+	) {
+		// loop through lines of code
+		int lineNumber = -1;
+		int size = code.size() - 1;
+		while (lineNumber < size){
+			lineNumber++;
+			// check if line is a command
 			String line = code.get(lineNumber);
 			ArrayList<String> temp = parseCommand(line, parameters, variables, param);
 			if (null != temp) {
@@ -314,15 +360,36 @@ public class Main {
 					lineNumber--;
 				}
 			}
+			// line was not a command, no action required
 		}
-		return code;
 	}
 	
-	// command results in a new set of code lines
+	/**
+	 * Checks a single template line for commands. Returns the set of code
+	 * lines produced by the command. Returns an empty set of code lines if the
+	 * command did not produce any new code. Returns null if the line contains
+	 * no command.
+	 *
+	 * Prints errors in console if command is badly formatted or unrecognized.
+	 *
+	 * @param line
+	 *      Template line String to check for commands.
+	 * @param parameters
+	 *      Map of all parameters specified for this code section.
+	 * @param variables
+	 *      Map of all variables specified for this code section.
+	 * @param param
+	 *      Optional parameter whose values should be filled in for this code
+	 *      section. Null if not specified.
+	 * @return
+	 *      Set of code lines produced by the command in the specified line.
+	 *      Empty if no lines generated by the command in the specified line.
+	 *      Null if no command found in this line.
+	 */
 	private static ArrayList<String> parseCommand(
 					String line,
 					Map<String, Param> parameters,
-					HashMap<String, String> variables,
+					Map<String, String> variables,
 					Param param
 	) {
 		// try to find $command$ section in provided line
@@ -345,7 +412,7 @@ public class Main {
 			return new ArrayList<>();
 		}
 		
-		// know what the command in between command identifier $$ is -> execute it
+		// found command in between $$ command identifiers -> execute command
 		String cmd = line.substring(c_start, c_end);
 		switch (cmd) {
 			case "p-template" :
@@ -366,7 +433,7 @@ public class Main {
 					String line,
 					int index,
 					Map<String, Param> parameters,
-					HashMap<String, String> variables
+					Map<String, String> variables
 	) {
 		ArrayList<String> lines = new ArrayList<>();
 		int p_list_start = line.indexOf('[', index);
@@ -415,7 +482,7 @@ public class Main {
 					String line,
 					int p_list_end,
 					Param param,
-					HashMap<String, String> variables
+					Map<String, String> variables
 	) {
 		int tmp_start = p_list_end + 2;
 		if (tmp_start >= line.length()) {
@@ -491,13 +558,36 @@ public class Main {
 		return lines;
 	}
 	
+	/**
+	 * Handles a line containing a $template$ command. Displays a warning if
+	 * the $template$ command is not followed by a template name. If a template
+	 * name is specified it will be processed with the specified parent
+	 * template parameters and variables and the output code generated from it
+	 * will be returned.
+	 *
+	 * If a specific parameter was specified as param, it's values will be
+	 * filled in for any parameter keywords in the specified template.
+	 * @param line
+	 *      Line containing a $template$ command
+	 * @param index
+	 *      Index of closing $ of $template$ command identifier in line.
+	 * @param parameters
+	 *      Parameters specified for template containing this template command.
+	 * @param variables
+	 *      Variables specified for template containing this template command.
+	 * @param param
+	 *      Parameter whose values should be filled into the specified template.
+	 * @return
+	 *      Output code produced from the template as a List of String objects.
+	 */
 	private static ArrayList<String> templateCmd(
 					String line,
 					int index,
 					Map<String, Param> parameters,
-					HashMap<String, String> variables,
+					Map<String, String> variables,
 					Param param
 	) {
+		// find specified template in line
 		int tmp_start = index + 2;
 		if (tmp_start >= line.length()) {
 			System.err.println("Error: No template name specified for template " +
@@ -510,25 +600,54 @@ public class Main {
 							"command : " + line + " : Line ignored!");
 			return new ArrayList<>();
 		} else {
-			// need to include extension
+			// need to include extension part
 			tmp_end = tmp_end + EXTENSION_LENGTH;
 		}
 		String template = line.substring(tmp_start, tmp_end);
+		
+		// process template
 		ArrayList<String> newLines = processTemplate(template, parameters,
 						variables, param);
 		if (null == param) {
+			// template was not processed for a specific param
 			if (null == newLines) {
 				// template not found, user is already warned, return empty
 				return new ArrayList<>();
 			} else {
+				// template found, return result from template
 				return newLines;
 			}
 		} else {
+			// check if processing template for a specific param went correctly
 			ArrayList<String> lines = new ArrayList<>();
 			return checkParamTemplateResult(lines, newLines, template, param);
 		}
 	}
 	
+	/**
+	 * Checks if filling in a template for a specific parameter was successful.
+	 * - If the template existed and wasn't empty, the lines generated from
+	 * it are are added to the output.
+	 * - If the template was empty, a warning is displayed and a comment is
+	 * included in the output as an indication for the user where the parameter
+	 * specific code should have been.
+	 * - If the template for that specific parameter did not exist, a blank
+	 * template is created at it's location. A warning is displayed that this
+	 * blank template was created and should be filled in by the user. A comment
+	 * is included in the output as an indication for the user where the
+	 * parameter specific code should have been.
+	 *
+	 * @param lines
+	 *      Output lines as a list of String objects.
+	 * @param newLines
+	 *      Set of lines generated from the template
+	 * @param template
+	 *      Template file used for generating lines
+	 * @param param
+	 *      Parameter whose values were used to fill in template.
+	 * @return
+	 *      Set of output lines as a list of String objects.
+	 */
 	private static ArrayList<String> checkParamTemplateResult(
 					ArrayList<String> lines,
 					ArrayList<String> newLines,
@@ -536,64 +655,109 @@ public class Main {
 					Param param
 	) {
 		if (null != newLines && 0 == newLines.size()) {
-			// Warn user that the template is empty,
+			// template was found but was empty, warn user
 			System.out.println("Warning: template " + param.name + "/" + template +
 							" was empty!" +
 							" A comment line has been added in the output to indicate" +
 							" where the code for this template could be added.");
 			lines.add("\\\\ Add " + param.name + " code section here!");
 		} else if (null != newLines) {
+			// template was found and was not empty, add result to output
 			lines.addAll(newLines);
 		} else {
+			// template was not found, warn user and make blank template
 			System.out.println("Warning: the template " + param.name + "/" +
 							template + " was missing!" +
 							" A blank template has been created at this location\n" +
 							"A comment line has been added in the output to indicate" +
 							" where the code for this template could be added.");
-			// Create a blank template file and warn user to fill it in
+			// Use settings file to locate template directory
 			ClassLoader classloader = Thread.currentThread().getContextClassLoader();
-			File settings = new File(classloader.getResource("settings.json").getFile());
-			Path localPath = settings.toPath().getParent().resolve(TEMPLATE_DIR);
-			Utilities.writeLinesToFile(
-							null,
-							localPath + "/" + template,
-							overwriteExisting
-			);
+			URL settings = classloader.getResource(SETTINGS_FILE);
+			if (null != settings) {
+				File settingsFile = new File(settings.getFile());
+				Path mainDirectory = settingsFile.toPath().getParent();
+				Path templateDirectory = mainDirectory.resolve(TEMPLATE_DIR);
+				// create blank file in template directory
+				Utilities.writeLinesToFile(
+								null,
+								templateDirectory + "/" + template,
+								overwriteExisting
+				);
+			} else {
+				System.err.println("Error: Unable to find settings.json");
+			}
 			lines.add("\\\\ Add " + param.name + " code section here!");
 		}
 		return lines;
 	}
 	
+	/**
+	 * Fills in the values of the specified parameter for the parameter
+	 * keywords in the specified set of template lines.
+	 * Defined parameter keywords that get replaced with values are:
+	 *  - p_name : replaced with name of parameter
+	 *  - p_id : replaced with enum integer identifier of parameter
+	 *  - p_enumName : replaced with name + '_param_id' suffix
+	 *  - p_dataType : replaced with data type of parameter
+	 *  - p_defaultValue : replaced with default value of parameter
+	 *
+	 * @param lines
+	 *      Template lines as a list of String objects.
+	 * @param param
+	 *      Parameter whose values should be filled into the specified lines.
+	 */
 	private static void fillInParam(ArrayList<String> lines, Param param) {
 		if (null == lines) {
 			return;
 		}
-		// loop through code lines, replace all var keys with var values
+		// loop through code lines
 		int lineNumber = -1;
 		int size = lines.size() - 1;
 		while (lineNumber < size){
 			lineNumber++;
 			String line = lines.get(lineNumber);
+			// fill in parameter values for current line
 			line = fillInParam(line, param);
 			lines.set(lineNumber, line);
 		}
 	}
 	
+	/**
+	 * Fills in the values of the specified parameter for the parameter
+	 * keywords in the specified line.
+	 * Defined parameter keywords that get replaced with values are:
+	 *  - p_name : replaced with name of parameter
+	 *  - p_id : replaced with enum integer identifier of parameter
+	 *  - p_enumName : replaced with name + '_param_id' suffix
+	 *  - p_dataType : replaced with data type of parameter
+	 *  - p_defaultValue : replaced with default value of parameter
+	 *
+	 * @param line
+	 *      Line String where parameter values should be filled in.
+	 * @param param
+	 *      Parameter whose values should be filled into specified line.
+	 * @return
+	 *      Line String with parameter keywords replaced with the values from
+	 *      the specified parameter.
+	 */
 	private static String fillInParam(String line, Param param) {
-			line = line.replace("id", param.id + "");
-			line = line.replace("p_dataType", param.dataType);
-			line = line.replace("p_enumName", param.enumName);
-			line = line.replace("p_name", param.name);
-			line = line.replace("p_defaultValue", param.defaultValue);
-			return line;
+		// replace parameter keywords with param values
+		line = line.replace("p_name", param.name);
+		line = line.replace("p_id", Integer.toString(param.id));
+		line = line.replace("p_enumName", param.enumName);
+		line = line.replace("p_dataType", param.dataType);
+		line = line.replace("p_defaultValue", param.defaultValue);
+		
+		return line;
 	}
 
 	/**
-	 * Removes template comments from the code. Template comments are
-	 * identified as lines starting with '//<'.
+	 * Removes template comment lines from the code. Template comments are
+	 * identified as lines starting with '//<', possibly preceded by whitespace.
 	 *
 	 * @param code
-	 *          Code represented as a list of Strings.
+	 *      Code represented as a list of Strings.
 	 */
 	private static void removeTemplateComments(ArrayList<String> code) {
 		// null check
@@ -607,7 +771,7 @@ public class Main {
 			// find next and remove leading whitespace
 			String str = itr.next();
 			String trimStr = str.trim();
-			// remove if first chars are tempalte comment identifiers
+			// remove if first non-whitespace chars equal template comment identifier
 			if (trimStr.length() > 2 && trimStr.substring(0,3).equals("//<")) {
 				itr.remove();
 			}
