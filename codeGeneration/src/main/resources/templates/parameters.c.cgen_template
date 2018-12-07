@@ -11,14 +11,14 @@
  * by this subsystem.
  */
 struct parameters_memory_pool {
-	$p-line$ [testing_2|testing_4|SBSYS_sensor_loop] 	p_dataType p_name;
+	$p-line$ [testing_2|testing_4|SBSYS_sensor_loop] 	p#dataType p#name;
 } mem_pool;
 
 /*
  * Can be called to (re)set all parameters of this subsystem to default values.
  */
 void init_parameters() {
-	$p-line$ [testing_2|testing_4|SBSYS_sensor_loop] 	mem_pool.p_name = p_defaultValue;
+	$p-line$ [testing_2|testing_4|SBSYS_sensor_loop] 	mem_pool.p#name = p#defaultValue;
 }
 
 /*

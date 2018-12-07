@@ -696,11 +696,11 @@ public class Main {
 	 * Fills in the values of the specified parameter for the parameter
 	 * keywords in the specified set of template lines.
 	 * Defined parameter keywords that get replaced with values are:
-	 *  - p_name : replaced with name of parameter
-	 *  - p_id : replaced with enum integer identifier of parameter
-	 *  - p_enumName : replaced with name + '_param_id' suffix
-	 *  - p_dataType : replaced with data type of parameter
-	 *  - p_defaultValue : replaced with default value of parameter
+	 *  - p#name : replaced with name of parameter
+	 *  - p#id : replaced with enum integer identifier of parameter
+	 *  - p#enumName : replaced with name + '_param_id' suffix
+	 *  - p#dataType : replaced with data type of parameter
+	 *  - p#defaultValue : replaced with default value of parameter
 	 *
 	 * @param lines
 	 *      Template lines as a list of String objects.
@@ -727,11 +727,11 @@ public class Main {
 	 * Fills in the values of the specified parameter for the parameter
 	 * keywords in the specified line.
 	 * Defined parameter keywords that get replaced with values are:
-	 *  - p_name : replaced with name of parameter
-	 *  - p_id : replaced with enum integer identifier of parameter
-	 *  - p_enumName : replaced with name + '_param_id' suffix
-	 *  - p_dataType : replaced with data type of parameter
-	 *  - p_defaultValue : replaced with default value of parameter
+	 *  - p#name : replaced with name of parameter
+	 *  - p#id : replaced with enum integer identifier of parameter
+	 *  - p#enumName : replaced with name + '_param_id' suffix
+	 *  - p#dataType : replaced with data type of parameter
+	 *  - p#defaultValue : replaced with default value of parameter
 	 *
 	 * @param line
 	 *      Line String where parameter values should be filled in.
@@ -743,11 +743,11 @@ public class Main {
 	 */
 	private static String fillInParam(String line, Param param) {
 		// replace parameter keywords with param values
-		line = line.replace("p_name", param.name);
-		line = line.replace("p_id", Integer.toString(param.id));
-		line = line.replace("p_enumName", param.enumName);
-		line = line.replace("p_dataType", param.dataType);
-		line = line.replace("p_defaultValue", param.defaultValue);
+		line = line.replace("p#name", param.name);
+		line = line.replace("p#id", Integer.toString(param.id));
+		line = line.replace("p#enumName", param.enumName);
+		line = line.replace("p#dataType", param.dataType);
+		line = line.replace("p#defaultValue", param.defaultValue);
 		
 		return line;
 	}
