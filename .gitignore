@@ -1,6 +1,4 @@
 codeGeneration/.idea/
-codeGeneration/TEST/
-*.class
-Experiments/
-*.iml
 codeGeneration/target/
+*.class
+*.iml
