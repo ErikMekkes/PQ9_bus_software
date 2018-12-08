@@ -27,6 +27,9 @@
 		<junit.version>4.12</junit.version>
 		<!-- java json library -->
 		<json.version>20180813</json.version>
+		<!-- javadoc generation -->
+		<projectinfo.plugin.version>2.9</projectinfo.plugin.version>
+		<javadoc.plugin.version>2.10.4</javadoc.plugin.version>
 	</properties>
 	
 	<dependencies>
@@ -80,6 +83,58 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>${surefire.plugin.version}</version>
 			</plugin>
+			
+			<!-- Maven shader for bundling everything including dependencies in jar -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<version>3.2.1</version>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<createDependencyReducedPom>false</createDependencyReducedPom>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
+		
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>false</filtering>
+			</resource>
+		</resources>
 	</build>
+	
+	<reporting>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-project-info-reports-plugin</artifactId>
+				<version>${projectinfo.plugin.version}</version>
+			</plugin>
+			
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-javadoc-plugin</artifactId>
+				<version>${javadoc.plugin.version}</version>
+				<configuration>
+					<failOnError>false</failOnError>
+				</configuration>
+				<reportSets>
+					<reportSet>
+						<id>default</id>
+						<reports>
+							<report>javadoc</report>
+						</reports>
+					</reportSet>
+				</reportSets>
+			</plugin>
+		</plugins>
+	</reporting>
 </project>
