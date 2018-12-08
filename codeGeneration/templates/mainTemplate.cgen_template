@@ -1,0 +1,26 @@
+$var$ #foo# foo bar
+$var$ #bar# I am bar my value = foo
+$var$ #help# I need help var1!
+foo
+bar
+foo
+bar
+hello
+I
+am a
+very cool new var1
+help
+template
+$template$
+$template
+templ$ate
+$templat$
+$emplate$
+$template$ 
+$template$ var1
+$template$ subTemplate1.cgen_template
+$template$ subTemplate2.cgen_template
+y = x?
+foo =  var1
+the
+end

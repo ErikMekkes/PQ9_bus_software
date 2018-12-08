@@ -1,0 +1,4 @@
+codeGeneration/.idea/
+codeGeneration/target/
+*.class
+*.iml

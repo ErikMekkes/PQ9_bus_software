@@ -1,0 +1,54 @@
+#include "parameters.h"
+// satellite parameter definitions
+#include "satellite.h"
+#include "devices.h"
+#include <stdint.h>
+// contains utility functions for conversion between parameter data types.
+#include "packet_utilities.h"
+
+/*
+ * Defines a mem_pool struct containing all the parameters that are required
+ * by this subsystem.
+ */
+struct parameters_memory_pool {
+	$p-line$ [testing_2|testing_4|SBSYS_sensor_loop] 	p#dataType p#name;
+} mem_pool;
+
+/*
+ * Can be called to (re)set all parameters of this subsystem to default values.
+ */
+void init_parameters() {
+	$p-line$ [testing_2|testing_4|SBSYS_sensor_loop] 	mem_pool.p#name = p#defaultValue;
+}
+
+/*
+ * Returns the current values of the requested parameter id. The pid argument
+ * defines the requested parameter, the *value, *buf and *size pointer
+ * arguments are used as output for the return values.
+ *
+ * pid : parameter id (input)
+ * *value : parameter value in it's original data type (output)
+ * *buf : value of parameter as a uint8_t representation (output)
+ * *size : size in bytes of the data type stored in *(*value) (output)
+ */
+void get_parameter(param_id pid, void *value, uint8_t *buf, uint16_t *size) {
+	switch (pid) {
+		$p-template$ [all] get_parameter.cgen_template
+		default :
+			*size = 0;
+	}
+}
+
+/*
+ * Updates the local value to the specified value for the specified parameter id.
+ */
+bool set_parameter(param_id pid, void* value) {
+	bool res = true;
+	switch (pid) {
+		$p-template$ [adb_deb|SBSYS_reset_clr_int_wdg|SBSYS_reset_cmd_int_wdg|SBSYS_sensor_loop] set_parameter.cgen_template
+		default :
+			res = false;
+	}
+
+	return res;
+}
