@@ -1,3 +1,0 @@
-		case p#enumName :
-		$p-template$ [all] p#name/get_parameter.cgen_template
-			break;

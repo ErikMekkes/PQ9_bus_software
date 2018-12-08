@@ -1,5 +1,4 @@
 import java.io.*;
-import java.net.URL;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,7 +32,7 @@ public class Main {
 	public static void main(String[] args) {
 		String intro =
 					"\nThis is the PQ9_bus_software subsystem code generator!\n" +
-					"Code generator settings can be found in settings.Utilities.\n" +
+					"Code generator settings can be found in settings.json.\n" +
 					"Templates to use for generating files can be placed in the " +
 					"templates folder\n";
 		System.out.println(intro);
@@ -327,24 +326,24 @@ public class Main {
 		// found command in between $$ command identifiers -> execute command
 		String cmd = line.substring(c_start, c_end);
 		if (cmd.equals("var")) {
-			int v_name_start = line.indexOf(' ', c_end);
+			int v_name_start = line.indexOf('#', c_end);
 			if (-1 == v_name_start) {
-				// no starting ' ', no name specified
-				System.err.println("Error: variable name undefined, no space found " +
-								"after $var$ command for : " + line +	" : Line ignored!");
+				// no starting '#', no name specified
+				System.err.println("Error: no starting '#' found for variable name " +
+								"in line :" + line + " : Line ignored!");
 				return true;
 			} else {
-				// need to parse what's in between ' ' characters...
+				// need to parse what's in between '#' characters...
 				v_name_start = v_name_start +1;
 			}
-			int v_name_end = line.indexOf(' ', v_name_start);
+			int v_name_end = line.indexOf('#', v_name_start);
 			if (-1 == v_name_end) {
-				System.err.println("Error: variable value undefined, no space " +
-								"found after variable name for : " + line + " : Line ignored!");
+				System.err.println("Error: no end '#' found for variable name in " +
+								"line :" + line + " : Line ignored!");
 				return true;
 			}
 			String v_name = line.substring(v_name_start, v_name_end);
-			String v_value = line.substring(v_name_end + 1);
+			String v_value = line.substring(v_name_end + 2);
 			// if variable was already defined in parent template, warn user
 			if (variables.containsKey(v_name)) {
 				System.err.println("Warning: template " + template +
@@ -515,9 +514,9 @@ public class Main {
 		for (String p : params) {
 			if (p.equals("all")) {
 				// for all parameters
-				parameters.forEach((name, par) -> {
-					addParLines(lines, line, p_list_end, par, variables);
-				});
+				parameters.forEach((name, par) ->
+								addParLines(lines, line, p_list_end, par, parameters,
+												variables));
 				return lines;
 			}
 		}
@@ -530,7 +529,7 @@ public class Main {
 								"skipped!");
 				continue;
 			}
-			addParLines(lines, line, p_list_end, par, variables);
+			addParLines(lines, line, p_list_end, par, parameters, variables);
 		}
 		return lines;
 	}
@@ -540,6 +539,7 @@ public class Main {
 					String line,
 					int p_list_end,
 					Param param,
+					Map<String, Param> parameters,
 					Map<String, String> variables
 	) {
 		int tmp_start = p_list_end + 2;
@@ -559,10 +559,8 @@ public class Main {
 		}
 		String template = line.substring(tmp_start, tmp_end);
 		template = fillInParam(template, param);
-		Map<String, Param> parMap = new HashMap<>();
-		parMap.put(param.name, param);
 		// fill in the template with values of par
-		ArrayList<String> newLines = processTemplate(template, parMap,
+		ArrayList<String> newLines = processTemplate(template, parameters,
 						variables, param);
 		checkParamTemplateResult(lines, newLines, template, param);
 	}
@@ -729,22 +727,11 @@ public class Main {
 							" A blank template has been created at this location\n" +
 							"A comment line has been added in the output to indicate" +
 							" where the code for this template could be added.");
-			// Use settings file to locate template directory
-			ClassLoader classloader = Thread.currentThread().getContextClassLoader();
-			URL settings = classloader.getResource(SETTINGS_FILE);
-			if (null != settings) {
-				File settingsFile = new File(settings.getFile());
-				Path mainDirectory = settingsFile.toPath().getParent();
-				Path templateDirectory = mainDirectory.resolve(TEMPLATE_DIR);
-				// create blank file in template directory
-				Utilities.writeLinesToFile(
-								null,
-								templateDirectory + "/" + template,
-								overwriteExisting
-				);
-			} else {
-				System.err.println("Error: Unable to find settings.json");
-			}
+			Utilities.writeLinesToFile(
+							null,
+							TEMPLATE_DIR + "/" + template,
+							overwriteExisting);
+			
 			lines.add("\\\\ Add " + param.name + " code section here!");
 		}
 		return lines;

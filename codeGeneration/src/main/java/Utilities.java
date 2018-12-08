@@ -78,16 +78,9 @@ public class Utilities {
 		}
 		// Make new empty list for result
 		ArrayList<String> code = new ArrayList<>();
-		// Find file in resources folder
-		ClassLoader classloader = Thread.currentThread().getContextClassLoader();
-		InputStream fileStream = classloader.getResourceAsStream(fileName);
-		if (null == fileStream) {
-			System.err.println("Error: Resource " + fileName + " not found!");
-			return null;
-		}
 		// Find the referenced location, try to open with BufferedReader
 		// try with resource -> resource gets closed automatically
-		try (InputStreamReader fileReader = new InputStreamReader(fileStream);
+		try (FileReader fileReader = new FileReader(fileName);
 		     BufferedReader bufferedReader = new BufferedReader(fileReader)){
 			// loop through each line in BufferedReader, add to result list
 			bufferedReader.lines().forEach(code::add);
@@ -113,6 +106,7 @@ public class Utilities {
 	public static void writeLinesToFile(ArrayList<String> code,
 	                                     String fileName,
 	                                     boolean overwriteExisting) {
+		//TODO : make this return a boolean as indication for success
 		// Find the referenced location, check if should be overridden
 		Path filePath = Paths.get(fileName);
 		if (Files.exists(filePath)) {

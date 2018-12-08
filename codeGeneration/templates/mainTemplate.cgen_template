@@ -1,8 +1,15 @@
-$var$ var1 foo
+$var$ #foo# foo bar
+$var$ #bar# I am bar my value = foo
+$var$ #help# I need help var1!
+foo
+bar
+foo
+bar
 hello
 I
 am a
 very cool new var1
+help
 template
 $template$
 $template
