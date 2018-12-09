@@ -104,29 +104,26 @@
 			</plugin>
 		</plugins>
 		
+		<!-- which additional resources to include in the target folder when building-->
 		<resources>
-			<resource>
-				<directory>src/main/resources</directory>
-				<filtering>false</filtering>
-			</resource>
-			<resource>
-				<directory>templates</directory>
-				<includes>
-					<include>**/*.cgen_template</include>
-				</includes>
-			</resource>
-			<resource>
-				<filtering>true</filtering><!-- if it is neccessary -->
-				<directory>${project.basedir}</directory><!-- from -->
+			<resource><!-- pdf files from doc directory -->
+				<directory>${project.build.directory}/CodeGenerator/doc</directory><!-- from -->
 				<targetPath>${project.build.directory}/CodeGenerator</targetPath><!-- to -->
 				<includes><!-- what -->
+					<include>**/*.pdf</include>
+				</includes>
+			</resource>
+			<resource><!-- settings.json and parameter .csv files from main directory-->
+				<directory>${project.basedir}</directory>
+				<targetPath>${project.build.directory}/CodeGenerator</targetPath>
+				<includes>
 					<include>*.csv</include>
 					<include>settings.json</include>
 				</includes>
 			</resource>
-			<resource>
+			<resource><!-- cgen_templates from templates directory-->
 				<directory>templates</directory>
-				<targetPath>${project.build.directory}/CodeGenerator/templates</targetPath><!-- to -->
+				<targetPath>${project.build.directory}/CodeGenerator/templates</targetPath>
 				<includes>
 					<include>**/*.cgen_template</include>
 				</includes>
