@@ -28,7 +28,7 @@
 
 \chapter{Quick Start Guide}
 
-\section{Where to get the Generator}
+\section{Where to get the Code Generator}
 For a direct download of the latest version of the PQ9 Code Generator, including this manual, the source code and example templates, head over to the latest release on the GitHub repository:\vsp
 
 
@@ -56,12 +56,12 @@ Update the settings.json file :
 \section{Modifying the source code}
 The entire code generator project is open source, you are free to make your own copy, clone or fork of the original source files and free to customize it to your needs.\vsp
 
-The project is built with maven, for which the configuration has been included. It should be possible to directly import the source code as a maven project and modify / build / run it in most IDE's.\vsp
+The project is set up with maven, for which the configuration has been included. It should be possible to directly import the source code as a maven project and modify / build / run it in most IDE's. Maven has been configured to create an executable jar file in ./target/CodeGenerator directory, along with all required external files such as templates and settings.json during the build cycle. If you wish to include additional external files, please check out the resources section and comments in the maven pom.xml.\vsp
 
 Have a contribution that you believe should be added to the original? Make a fork of the original github repository, apply your changes and create a pull request to the code generator repository.
 
 \section{Sharing templates}
-Currently there is no option provided by the maintainers to share templates. Feel free to set one up if there is a demand.
+Currently there is no service provided by the maintainers to share templates. Feel free to set one up if there is a demand.
 
 \chapter{Program Settings}
 - Unfinished -
