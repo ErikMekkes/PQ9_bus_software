@@ -4,6 +4,15 @@
 	"overwrite_existing_files" : true,
 	"files_to_generate" : [
 		{
+			"filename" : "../satellite.h",
+			"base_template" : "satellite.h.cgen_template",
+			"parameters" : "params.csv"
+		},
+		{
+			"filename" : "../satellite.c",
+			"base_template" : "satellite.c.cgen_template"
+		},
+		{
 			"filename" : "parameters.h"
 		},
 		{
@@ -16,17 +25,6 @@
 			"parameters" : [
 				testing_2,
 				testing_4
-			]
-		},
-		{
-			"filename" : "test.c",
-			"base_template" : "fm.h.cgen_template",
-			"parameters" : [
-				SBSYS_sensor_loop,
-				adb_int_temp,
-				SBSYS_reset_clr_int_wdg,
-				SBSYS_reset_cmd_int_wdg,
-				[10,"custom_param","uint32_t","888"]
 			]
 		},
 		{

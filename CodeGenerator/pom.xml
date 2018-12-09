@@ -102,16 +102,35 @@
 					</execution>
 				</executions>
 			</plugin>
+			<!-- Task to move any .pdf documentation to output folder -->
+			<plugin>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>1.8</version>
+				<executions>
+					<execution>
+						<phase>generate-sources</phase>
+						<configuration>
+							<tasks>
+								<copy todir="${project.build.directory}/CodeGenerator" flatten="true">
+									<fileset dir="${project.basedir}/doc">
+										<include name="**/*.pdf"/>
+									</fileset>
+								</copy>
+							</tasks>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 		
 		<!-- which additional resources to include in the target folder when building-->
 		<resources>
-			<resource><!-- pdf files from doc directory -->
-				<directory>${project.build.directory}/CodeGenerator/doc</directory><!-- from -->
-				<targetPath>${project.build.directory}/CodeGenerator</targetPath><!-- to -->
-				<includes><!-- what -->
-					<include>**/*.pdf</include>
-				</includes>
+			<resource><!-- Include source files -->
+				<directory>${project.basedir}/src</directory>
+				<targetPath>${project.build.directory}/CodeGenerator/src</targetPath>
 			</resource>
 			<resource><!-- settings.json and parameter .csv files from main directory-->
 				<directory>${project.basedir}</directory>

@@ -1,0 +1,3 @@
+			*((p#dataType*)value) = mem_pool.p#name;
+			cnv16_8(mem_pool.p#name, buf);
+			*size = 2;
