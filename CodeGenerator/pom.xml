@@ -5,10 +5,10 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>PQ9_bus_software</groupId>
-	<artifactId>codeGeneration</artifactId>
+	<artifactId>CodeGenerator</artifactId>
 	<version>1.0-SNAPSHOT</version>
 	<url>https://github.com/ErikMekkes/PQ9_bus_software</url>
-	<name>codeGeneration</name>
+	<name>CodeGenerator</name>
 	<description>Generates subsystem code for the PQ9 bus.</description>
 	<packaging>jar</packaging>
 	
@@ -68,6 +68,7 @@
 				<artifactId>maven-jar-plugin</artifactId>
 				<version>${maven.jar.plugin.version}</version>
 				<configuration>
+					<outputDirectory>${project.build.directory}/CodeGenerator</outputDirectory>
 					<archive>
 						<manifest>
 							<addClasspath>true</addClasspath>
@@ -101,12 +102,50 @@
 					</execution>
 				</executions>
 			</plugin>
+			<!-- Task to move any .pdf documentation to output folder -->
+			<plugin>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>1.8</version>
+				<executions>
+					<execution>
+						<phase>generate-sources</phase>
+						<configuration>
+							<tasks>
+								<copy todir="${project.build.directory}/CodeGenerator" flatten="true">
+									<fileset dir="${project.basedir}/doc">
+										<include name="**/*.pdf"/>
+									</fileset>
+								</copy>
+							</tasks>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 		
+		<!-- which additional resources to include in the target folder when building-->
 		<resources>
-			<resource>
-				<directory>src/main/resources</directory>
-				<filtering>false</filtering>
+			<resource><!-- Include source files -->
+				<directory>${project.basedir}/src</directory>
+				<targetPath>${project.build.directory}/CodeGenerator/src</targetPath>
+			</resource>
+			<resource><!-- settings.json and parameter .csv files from main directory-->
+				<directory>${project.basedir}</directory>
+				<targetPath>${project.build.directory}/CodeGenerator</targetPath>
+				<includes>
+					<include>*.csv</include>
+					<include>settings.json</include>
+				</includes>
+			</resource>
+			<resource><!-- cgen_templates from templates directory-->
+				<directory>templates</directory>
+				<targetPath>${project.build.directory}/CodeGenerator/templates</targetPath>
+				<includes>
+					<include>**/*.cgen_template</include>
+				</includes>
 			</resource>
 		</resources>
 	</build>

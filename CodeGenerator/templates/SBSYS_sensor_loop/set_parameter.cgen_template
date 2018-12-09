@@ -1,0 +1,3 @@
+			uint8_t *buf;
+			buf = (uint8_t*)value;
+			cnv8_32LE(&buf[0], &mem_pool.p#name );
