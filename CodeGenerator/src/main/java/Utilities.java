@@ -167,11 +167,8 @@ public class Utilities {
 	 *      A String representation of the file.
 	 */
 	private static String readStringFromFile(String fileName) {
-		// Find file in resources folder
-		ClassLoader classloader = Thread.currentThread().getContextClassLoader();
-		InputStream fileStream = classloader.getResourceAsStream(fileName);
 		//using try with resources to ensure closing of resources.
-		try (InputStreamReader fileReader = new InputStreamReader(fileStream);
+		try (FileReader fileReader = new FileReader(fileName);
 		     BufferedReader bufferedReader = new BufferedReader(fileReader)) {
 			return bufferedReaderToString(bufferedReader);
 		} catch (IOException e) {

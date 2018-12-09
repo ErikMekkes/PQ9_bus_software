@@ -5,10 +5,10 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>PQ9_bus_software</groupId>
-	<artifactId>codeGeneration</artifactId>
+	<artifactId>CodeGenerator</artifactId>
 	<version>1.0-SNAPSHOT</version>
 	<url>https://github.com/ErikMekkes/PQ9_bus_software</url>
-	<name>codeGeneration</name>
+	<name>CodeGenerator</name>
 	<description>Generates subsystem code for the PQ9 bus.</description>
 	<packaging>jar</packaging>
 	
@@ -68,6 +68,7 @@
 				<artifactId>maven-jar-plugin</artifactId>
 				<version>${maven.jar.plugin.version}</version>
 				<configuration>
+					<outputDirectory>${project.build.directory}/CodeGenerator</outputDirectory>
 					<archive>
 						<manifest>
 							<addClasspath>true</addClasspath>
@@ -107,6 +108,28 @@
 			<resource>
 				<directory>src/main/resources</directory>
 				<filtering>false</filtering>
+			</resource>
+			<resource>
+				<directory>templates</directory>
+				<includes>
+					<include>**/*.cgen_template</include>
+				</includes>
+			</resource>
+			<resource>
+				<filtering>true</filtering><!-- if it is neccessary -->
+				<directory>${project.basedir}</directory><!-- from -->
+				<targetPath>${project.build.directory}/CodeGenerator</targetPath><!-- to -->
+				<includes><!-- what -->
+					<include>*.csv</include>
+					<include>settings.json</include>
+				</includes>
+			</resource>
+			<resource>
+				<directory>templates</directory>
+				<targetPath>${project.build.directory}/CodeGenerator/templates</targetPath><!-- to -->
+				<includes>
+					<include>**/*.cgen_template</include>
+				</includes>
 			</resource>
 		</resources>
 	</build>
