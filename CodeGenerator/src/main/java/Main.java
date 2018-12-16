@@ -584,7 +584,13 @@ public class Main {
 		// if keyword all is used in list -> fill template for all params
 		for (String p : params) {
 			if (p.equals("all")) {
+				// process parameter in order of id
+				ArrayList<Param> ps = new ArrayList<>();
 				parameters.forEach((name, par) -> {
+					ps.add(par);
+				});
+				ArrayList<Param> sorted = sortParams(ps);
+				sorted.forEach(par -> {
 					ArrayList<String> blockLines =
 									new ArrayList<>(template.subList(startIndex, endIndex));
 					// replace parameter keywords
@@ -639,10 +645,15 @@ public class Main {
 		// if keyword all is used in list -> fill template for all params
 		for (String p : params) {
 			if (p.equals("all")) {
-				// for all parameters
-				parameters.forEach((name, par) ->
-								addParLines(lines, line, p_list_end, par, parameters,
-												variables));
+				// process parameter in order of id
+				ArrayList<Param> ps = new ArrayList<>();
+				parameters.forEach((name, par) -> {
+					ps.add(par);
+				});
+				ArrayList<Param> sorted = sortParams(ps);
+				sorted.forEach(par -> {
+					addParLines(lines, line, p_list_end, par,	parameters,	variables);
+				});
 				return new CommandResult(1, lines);
 			}
 		}
@@ -718,8 +729,13 @@ public class Main {
 		// if keyword all is used in list -> fill line for all params
 		for (String p : params) {
 			if (p.equals("all")) {
-				// for all parameters
+				// process parameter in order of id
+				ArrayList<Param> ps = new ArrayList<>();
 				parameters.forEach((name, par) -> {
+					ps.add(par);
+				});
+				ArrayList<Param> sorted = sortParams(ps);
+				sorted.forEach(par -> {
 					// fill in the code line with values of par
 					lines.add(fillInParam(paramLine, par));
 				});
@@ -921,6 +937,69 @@ public class Main {
 		line = line.replace("p#defaultValue", param.defaultValue);
 		
 		return line;
+	}
+	
+	/**
+	 * Sorts a list of parameters based on their ids. Uses a simple top down
+	 * merge sort.
+	 * @param params
+	 *      List of parameters to sort.
+	 * @return
+	 *      Sorted list of parameters.
+	 */
+	private static ArrayList<Param> sortParams(ArrayList<Param> params) {
+		if (null == params) {
+			return null;
+		}
+		int size = params.size();
+		if (1 >= size) {
+			return params;
+		}
+		
+		ArrayList<Param> left = new ArrayList<>();
+		ArrayList<Param> right = new ArrayList<>();
+		
+		for (int i = 0; i < size; i++) {
+			if (i < size/2) {
+				left.add(params.get(i));
+			} else {
+				right.add(params.get(i));
+			}
+		}
+		
+		ArrayList<Param> left_sort = sortParams(left);
+		ArrayList<Param> right_sort = sortParams(right);
+		
+		return mergeParams(left_sort, right_sort);
+	}
+	
+	/**
+	 * Merges two lists of parameters based on their ids.
+	 * @param left
+	 *      First list.
+	 * @param right
+	 *      Second List.
+	 * @return
+	 *      Merged result of the two lists.
+	 */
+	private static ArrayList<Param> mergeParams(ArrayList<Param> left,
+	                                            ArrayList<Param> right) {
+		ArrayList<Param> res = new ArrayList<>();
+		
+		while (!left.isEmpty() && !right.isEmpty()) {
+			if (left.get(0).id <= right.get(0).id) {
+				res.add(left.remove(0));
+			} else {
+				res.add(right.remove(0));
+			}
+		}
+		while (!left.isEmpty()) {
+			res.add(left.remove(0));
+		}
+		while (!right.isEmpty()) {
+			res.add(right.remove(0));
+		}
+		return res;
 	}
 
 	/**
