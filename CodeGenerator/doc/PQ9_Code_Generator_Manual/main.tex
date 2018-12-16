@@ -69,13 +69,14 @@ Currently there is no service provided by the maintainers to share templates. Fe
 \chapter{Specifying parameters}
 
 \chapter{Working with templates}
+The program builds the desired subsystem code from a specified set of templates and parameters as described in the previous chapters. The templates can contain anything, as long as they are files with the .cgen\_template extension. This chapter explains the available options within templates, which come in two variants: keywords and commands.
 
 \section{Template Keywords}
-This chapter lists the pre-defined keywords that can be used within templates. Just like keywords from programming languages these keywords can not be used for anything other than their pre-defined purpose, the code generation cannot distinguish between intended use, so will always interpret them with these pre-defined meanings.
+Keywords are pre-defined words that are recognized by the program. This section lists the keywords that can be used within templates. Just like keywords from programming languages these keywords can not be used for anything other than their pre-defined purpose, the code generator cannot distinguish between other intended uses, so will always interpret them with these pre-defined meanings.
 
 None of the template keywords are valid c-code, they will not compile, and the characters used in them generally aren't used in such a way to produce valid code for programming languages. The template keywords have been chosen in such a way to make it extremely unlikely for them to be mistakenly used for anything other than their intended purpose.
 
-\subsection{parameter properties} \label{par-keywords}
+\subsection{Parameter Properties} \label{par-keywords}
 These keywords are pre-defined to represent parameter properties, they are replaced with the corresponding value's if a specific parameter is passed during the code generation process (see \ref{p-template} and \ref{p-line}). They \textbf{can not} be used for any other purpose in a template.
 \begin{itemize}
     \item p\#name : The name of the parameter
@@ -90,16 +91,16 @@ These keywords are pre-defined to represent parameter properties, they are repla
     \addcontentsline{toc}{subsection}{p\#defaultValue}
 \end{itemize}
 
-\subsection{commands}
-These keywords can be used as commands for certain actions within templates. They are identified by the surrounding dollar \$ signs.
+\section{Template commands}
+Commands are pre-defined line formats that instruct the program to do something. They are identified by the surrounding dollar \$ signs.
 
-\subsubsection{\$var\$}
-This command can be used within templates to define a variable, the format is as follows:
+\subsection{\$var\$}
+This command is used to define a template variable for the current template, the format is as follows:
 \begin{lstlisting}
  $var$ #variable_name# variable_value
 \end{lstlisting}
 
-The effect is very straightforward, every instance of variable\_name is replaced with variable\_value. The replacement proceeds from the beginning of the template to the end, for example, replacing "aa" with "b" in the string "aaa" will result in "ba" rather than "ab".\\
+The effect is very straightforward, every instance of variable\_name in the template is replaced with variable\_value. The replacement proceeds from the beginning of the template to the end, for example, replacing "aa" with "b" in the string "aaa" will result in "ba" rather than "ab".\\
 
 Anything before the command identifier is ignored, so type and amount of leading whitespace can be freely chosen. The \Colorbox{backcolour}{\lstinline{$var$}} command identifier is fixed.\\
 
@@ -109,8 +110,8 @@ The variable name must be followed by a single space character, anything followi
 
 Using variable names within a variable value is possible, for example if \Colorbox{backcolour}{\lstinline{foo}} and \Colorbox{backcolour}{\lstinline{bar}} are defined as variables, \Colorbox{backcolour}{\lstinline{I am foo my value is bar}} is accepted as a value for foo. Using the name of a variable in it's value is allowed like above, but it will not be replaced to prevent infinite loops. In the above example, foo would be replaced with \Colorbox{backcolour}{\lstinline{I am foo my value is x}} if bar's value was defined as 'x'. Likewise, replacement of variables within variable value is only performed once, corresponding with the order in which the variables are defined within the template.
 
-\subsubsection{\$template\$}
-This command can be used within templates to include another template, the format is as follows:
+\subsection{\$template\$}
+This command is used to include another template in the current template, the format is as follows:
 \begin{lstlisting}
  $template$ template_filename
 \end{lstlisting}
@@ -121,8 +122,8 @@ It is possible to redefine existing variables in a sub-template with a different
 
 Template processing is performed recursively, sub-templates may again contain commands and thus may define further sub-templates and so on.
 
-\subsubsection{\$p-template\$} \label{p-template}
-This command can be used to process a sub-template for a specified set of parameters. The sub-template's lines are included multiple times, once for each specified parameter, replacing this command line. For each evaluation of the sub-template, the respective parameter's values are filled in for parameter keywords (see \ref{par-keywords}). The format is as follows:
+\subsection{\$p-template\$} \label{p-template}
+This command can be used to include a sub-template for a specified set of parameters. The sub-template's lines are included multiple times, once for each specified parameter, replacing this command line. For each evaluation of the sub-template, the respective parameter's values are filled in for parameter keywords (see \ref{par-keywords}). The format is as follows:
 \begin{lstlisting}
  $p-template$ array_of_parameters template_filename
 \end{lstlisting}
@@ -136,8 +137,8 @@ The parameter names used in parameter\_array must be a subset of the available p
 
 Template processing is performed recursively, sub-templates may again contain commands and thus may define further sub-templates and so on. This includes the ability to specify new \$p-template\$ and \$p-line\$ commands for parameters while the parent template is being processed for a certain parameter.
 
-\subsubsection{\$p-line\$} \label{p-line}
-This command can be used within templates to process a line for a specified set of parameters. The line is included multiple times, once for each specified parameter. This command is the single line equivalent of \Colorbox{backcolour}{\lstinline{$p-template$}}. Anything beyond the specified parameter array is considered part of the line to include. The parameter's values are filled in for any parameter keywords in this line. The format is as follows:
+\subsection{\$p-line\$} \label{p-line}
+This command can be used within templates to include a line for a specified set of parameters. The line is included multiple times, once for each specified parameter. This command is the single line equivalent of \Colorbox{backcolour}{\lstinline{$p-template$}}. Anything beyond the specified parameter array is considered part of the line to include. The parameter's values are filled in for any parameter keywords in this line. The format is as follows:
 \begin{lstlisting}
  $p-line$ array_of_parameters code_line
 \end{lstlisting}
