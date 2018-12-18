@@ -16,8 +16,7 @@
 			"filename" : "parameters.h"
 		},
 		{
-			"filename" : "parameters.c",
-			"parameters" : "adb_params.csv"
+			"filename" : "parameters.c"
 		},
 		{
 			"filename" : "somefile",
