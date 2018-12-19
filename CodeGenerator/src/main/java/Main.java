@@ -4,6 +4,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -17,6 +19,8 @@ public class Main {
 	private static Map<String, String> files = new HashMap<>();
 	// whether or not to overwrite existing files
 	private static boolean overwriteExisting = false;
+	// whether or not to keep indentation for sub-templates
+	private static boolean continueIndentation = true;
 	// Map of all available parameters
 	private static Map<String, Param> params = new HashMap<>();
 	// Map of parameters to use for each file
@@ -58,6 +62,8 @@ public class Main {
 			}
 		}
 		
+		loadSettings();
+		
 		// generate all required directories specified in settings
 		System.out.println("Making required directories...");
 		makeDirs();
@@ -92,6 +98,23 @@ public class Main {
 					"Please do check the output files in ./" + dirName +
 					" and take any possible warnings provided above into account";
 		System.out.println(exit);
+	}
+	
+	private static void loadSettings() {
+		// overwriting existing files
+		if (settings.has("overwrite_existing_files")) {
+			if (settings.get("overwrite_existing_files") instanceof Boolean) {
+				overwriteExisting = settings.getBoolean("overwrite_existing_files");
+			}
+		}
+		
+		// keep indentation for subtemplates
+		if (settings.has("continue_indentation")) {
+			if (settings.get("continue_indentation") instanceof Boolean) {
+				continueIndentation = settings.getBoolean("continue_indentation");
+			}
+		}
+		
 	}
 	
 	private static void findParams() {
@@ -141,7 +164,6 @@ public class Main {
 	private static void makeDirs() {
 		Path SubsFolder = Paths.get("./" + dirName);
 		
-		overwriteExisting = settings.getBoolean("overwrite_existing_files");
 		if (Files.exists(SubsFolder) && overwriteExisting) {
 			deleteDirectoryStream(SubsFolder);
 		}
@@ -251,15 +273,48 @@ public class Main {
 					Map<String, String> variables,
 					Param param
 	) {
-		// make local copy so parent variables aren't modified
-		HashMap<String, String> vars = new HashMap<>(variables);
-		
 		// read code from template file
 		ArrayList<String> code = Utilities.readLinesFromFile(TEMPLATE_DIR + templateFile);
+		
+		return processTemplate(templateFile, code, parameters, variables, param);
+	}
+	
+	/**
+	 * Generates a List of code lines by processing a specified template file.
+	 * A template file may define variables and additional templates.
+	 * Takes an initial set of defined variables as additional input.
+	 *
+	 * Processing first removing template comments, followed by checking for
+	 * additional variable definitions and replacing all occurrences of variables
+	 * with the values specified for each variable. Finally the template is
+	 * checked for additional template definitions, which are read and
+	 * processed similarly.
+	 *
+	 * Variables from parent templates carry over to child templates. A child
+	 * template may redefine a variable with a different value, the process
+	 * function will warn when this occurs to ensure intended variable usage
+	 *
+	 * @param code
+	 *      Specified template lines to generate code lines from.
+	 * @param variables
+	 *      Specified initial variables as (key,value) pairs.
+	 * @return
+	 *      A list of code lines generated from the specified template.
+	 */
+	private static ArrayList<String> processTemplate(
+					String templateFile,
+					ArrayList<String> code,
+					Map<String, Param> parameters,
+					Map<String, String> variables,
+					Param param
+	) {
 		if (null == code) {
-			// nothing read from file, user is already warned
+			// no template lines, user is already warned
 			return null;
 		}
+		
+		// make local copy so parent variables aren't modified
+		HashMap<String, String> vars = new HashMap<>(variables);
 		
 		// remove comments beforehand just in case to prevent misinterpretation
 		removeTemplateComments(code);
@@ -272,7 +327,7 @@ public class Main {
 		
 		// If template is being processed for a specific param, fill in it's values
 		if (null != param) {
-			fillInParam(code, param);
+			code = fillInParam(code, param);
 		}
 		
 		// check for commands
@@ -350,9 +405,11 @@ public class Main {
 			String v_value = line.substring(v_name_end + 2);
 			// if variable was already defined in parent template, warn user
 			if (variables.containsKey(v_name)) {
-				System.err.println("Warning: template " + template +
-								" overrides parent template variable " + v_name +
-								" locally with value " + v_value);
+				if (null == template) {
+					System.err.println("Warning: template overrides parent template variable " + v_name + " locally with value " + v_value);
+				} else {
+					System.err.println("Warning: template " + template + " overrides parent template variable " + v_name + " locally with value " + v_value);
+				}
 			}
 			// store variable in map as key, value
 			variables.put(v_name, v_value);
@@ -421,7 +478,9 @@ public class Main {
 				if (null != res.added) {
 					template.addAll(lineNumber, res.added);
 					size += res.added.size();
+					lineNumber += res.added.size();
 				}
+				lineNumber -= res.removed;
 				// specified lines removed, nothing added
 			}
 			// line was not a command, no action performed
@@ -484,19 +543,77 @@ public class Main {
 		String cmd = line.substring(c_start, c_end);
 		switch (cmd) {
 			case "p-template" :
-				return pTemplateCmd(line, c_end, parameters, variables);
+				return pTemplateCmd(line,lineNumber, parameters, variables);
 			case "p-line" :
-				return pLineCmd(line, c_end, parameters);
+				return pLineCmd(line, lineNumber, parameters);
 			case "template" :
 				return templateCmd(line, c_end, parameters, variables, param);
 			case "param" :
 				//TODO : could make a command to add a new param type from template
 			case "p-block" :
-				return pBlockCmd(template, lineNumber, c_end, parameters);
+				return pBlockCmd(template, lineNumber, parameters, variables);
 			default :
 				System.err.println("Error: Unrecognized command : " + cmd);
 				return new CommandResult(1, null);
 		}
+	}
+	
+	/**
+	 * Returns an exact String copy of the leading whitespace used in the
+	 * specified line.
+	 * @param line
+	 *      Line of which leading whitespace should be found.
+	 * @return
+	 *      Leading whitespace of line.
+	 */
+	private static String findIndentation(String line) {
+		// regex matching anything except whitespace
+		Pattern notWhiteSpace = Pattern.compile("\\S");
+		// first occurrence of regex
+		int indentationEnd = indexOf(notWhiteSpace, line);
+		// return part between string start and first non whitespace
+		return line.substring(0, indentationEnd);
+	}
+	
+	/**
+	 * Returns the index of the first occurrence of the pattern within the
+	 * specified String.
+	 *
+	 * @param pattern
+	 *      Pattern to look for.
+	 * @param str
+	 *      String to search.
+	 * @return
+	 *      Index of Pattern in String (first occurrence).
+	 */
+	private static int indexOf(Pattern pattern, String str) {
+		Matcher matcher = pattern.matcher(str);
+		return matcher.find() ? matcher.start() : -1;
+	}
+	
+	private static String[] findParamList(String line, int lineNumber) {
+		// find start of parameter list
+		int p_list_start = line.indexOf('[');
+		if (-1 == p_list_start) {
+			System.err.print("Error: no parameter list provided on line : " +
+							lineNumber + " : " + line + " : Line ignored! ");
+			System.err.println("Missing opening bracket?");
+			return null;
+		} else {
+			// need to read whats in between list identifiers
+			p_list_start = p_list_start + 1;
+		}
+		// find end of parameter list
+		int p_list_end = line.indexOf(']', p_list_start);
+		if (-1 == p_list_end) {
+			System.err.print("Error: no parameter list provided on line : " +
+							lineNumber + " : " + line + " : Line ignored! ");
+			System.err.println("Missing closing bracket?");
+			return null;
+		}
+		
+		// split on '|' and return list of specified parameters
+		return line.substring(p_list_start, p_list_end).split("\\|");
 	}
 	
 	/**
@@ -505,8 +622,6 @@ public class Main {
 	 *      Template the command was found in as list of Strings.
 	 * @param lineNumber
 	 *      Line number the command was found in.
-	 * @param c_end
-	 *      Index of the closing $ command identifier in the command line.
 	 * @param parameters
 	 *      Parameters that were specified for the template containing the
 	 *      command.
@@ -517,35 +632,21 @@ public class Main {
 	private static CommandResult pBlockCmd(
 					ArrayList<String> template,
 					int lineNumber,
-					int c_end,
-					Map<String, Param> parameters
+					Map<String, Param> parameters,
+					Map<String, String> variables
 	) {
 		// line at which the p-block command was found
 		String line = template.get(lineNumber);
-		
-		// find start of parameter list
-		int p_list_start = line.indexOf('[', c_end);
-		if (-1 == p_list_start) {
-			System.err.println("Error: no parameter list provided for p-block " +
-							"command : " + line + " on line : " + lineNumber +
-							" : Line ignored!");
-			return new CommandResult(1, null);
-		} else {
-			// need to read whats in between list identifiers
-			p_list_start = p_list_start + 1;
-		}
-		// find end of parameter list
-		int p_list_end = line.indexOf(']', p_list_start);
-		if (-1 == p_list_end) {
-			System.err.println("Error: badly formatted parameter list provided " +
-							"for p-block command : " + line + " on line : " + lineNumber +
-							" : Line ignored!");
+		// find specified list of parameters
+		String[] params = findParamList(line, lineNumber);
+		// ignore if not found (user is warned)
+		if (null == params) {
 			return new CommandResult(1, null);
 		}
 		
 		// check if the line contains an opening '{'
 		int block_start = -1;
-		int start_bracket = line.indexOf("\\{", p_list_end);
+		int start_bracket = line.indexOf("\\{");
 		if (-1 == start_bracket) {
 			System.err.println("Error: no starting bracket '\\{' for p-block " +
 							"command" +
@@ -585,8 +686,10 @@ public class Main {
 		int startIndex = block_start + 1;
 		int endIndex = block_end;
 		
-		// read set of specified parameters
-		String[] params = line.substring(p_list_start, p_list_end).split("\\|");
+		// get parameter code block from template
+		ArrayList<String> code = new ArrayList<>(template.subList(startIndex,
+						endIndex));
+		
 		// if keyword all is used in list -> fill template for all params
 		for (String p : params) {
 			if (p.equals("all")) {
@@ -597,10 +700,10 @@ public class Main {
 				});
 				ArrayList<Param> sorted = sortParams(ps);
 				sorted.forEach(par -> {
-					ArrayList<String> blockLines =
-									new ArrayList<>(template.subList(startIndex, endIndex));
-					// replace parameter keywords
-					fillInParam(blockLines, par);
+					// fill in the template with values of par
+					ArrayList<String> pCode = fillInParam(code, par);
+					ArrayList<String> blockLines = processTemplate(null, pCode, parameters,
+									variables, par);
 					result.addAll(blockLines);
 				});
 				return new CommandResult((block_end + 1 - block_start), result);
@@ -615,10 +718,11 @@ public class Main {
 								"skipped!");
 				continue;
 			}
-			ArrayList<String> blockLines =
-							new ArrayList<>(template.subList(startIndex, endIndex));
-			// replace parameter keywords
-			fillInParam(blockLines, par);
+			fillInParam(code, par);
+			// fill in the template with values of par
+			ArrayList<String> pCode = fillInParam(code, par);
+			ArrayList<String> blockLines = processTemplate(null, pCode, parameters,
+							variables, par);
 			result.addAll(blockLines);
 		}
 		return new CommandResult((block_end + 1 - block_start), result);
@@ -626,31 +730,46 @@ public class Main {
 	
 	private static CommandResult pTemplateCmd(
 					String line,
-					int index,
+					int lineNumber,
 					Map<String, Param> parameters,
 					Map<String, String> variables
 	) {
-		ArrayList<String> lines = new ArrayList<>();
-		int p_list_start = line.indexOf('[', index);
-		if (-1 == p_list_start) {
-			System.err.println("Error: no parameter list provided for p-line " +
+		// find indentation used
+		String indent = findIndentation(line);
+		// find specified list of parameters
+		String[] params = findParamList(line, lineNumber);
+		// ignore if not found (user is warned)
+		if (null == params) {
+			return new CommandResult(1, null);
+		}
+		
+		int p_list_end = line.indexOf(']');
+		// try to find specified template filename
+		int tmp_start = p_list_end + 2;
+		if (tmp_start >= line.length()) {
+			System.err.println("Error: No template name specified for template " +
 							"command : " + line + " : Line ignored!");
 			return new CommandResult(1, null);
-		} else {
-			// need to read whats in between list identifiers
-			p_list_start = p_list_start + 1;
 		}
-		int p_list_end = line.indexOf(']', index);
-		if (-1 == p_list_end) {
-			System.err.println("Error: badly formatted parameter list provided " +
-							"for p-line command : " + line + " : Line ignored!");
+		int tmp_end = line.indexOf(TEMPLATE_EXTENSION, tmp_start);
+		if (tmp_end == -1) {
+			System.err.println("Error: Template extension missing for template " +
+							"command : " + line + " : attempting with appended extension!");
 			return new CommandResult(1, null);
+		} else {
+			// need to include extension
+			tmp_end = tmp_end + EXTENSION_LENGTH;
 		}
-		// have a template to fill in for a list of parameters
-		String[] params = line.substring(p_list_start, p_list_end).split("\\|");
+		// template specified
+		String template = line.substring(tmp_start, tmp_end);
+		
+		ArrayList<String> lines = new ArrayList<>();
+		
+		boolean foundAllKeyword = false;
 		// if keyword all is used in list -> fill template for all params
 		for (String p : params) {
 			if (p.equals("all")) {
+				foundAllKeyword = true;
 				// process parameter in order of id
 				ArrayList<Param> ps = new ArrayList<>();
 				parameters.forEach((name, par) -> {
@@ -658,49 +777,58 @@ public class Main {
 				});
 				ArrayList<Param> sorted = sortParams(ps);
 				sorted.forEach(par -> {
-					addParLines(lines, line, p_list_end, par,	parameters,	variables);
+					addParTemplate(lines, template, par,parameters,	variables);
 				});
-				return new CommandResult(1, lines);
+				break;
 			}
 		}
-		// only fill template for specified parameters
-		for (String p : params) {
-			// fill in the template
-			Param par = parameters.get(p);
-			if (null == par) {
-				System.err.println("Error: Unknown parameter : " + p + " : Parameter " +
-								"skipped!");
-				continue;
+		if (!foundAllKeyword) {
+			// only fill template for specified parameters
+			for (String p : params) {
+				// fill in the template
+				Param par = parameters.get(p);
+				if (null == par) {
+					System.err.println("Error: Unknown parameter : " + p + " : Parameter " +
+									"skipped!");
+					continue;
+				}
+				addParTemplate(lines, template, par, parameters, variables);
 			}
-			addParLines(lines, line, p_list_end, par, parameters, variables);
+		}
+		if (continueIndentation) {
+			addPrefix(lines, indent);
 		}
 		return new CommandResult(1, lines);
 	}
 	
-	private static void addParLines(
+	/**
+	 * Adds the specified prefix string to each line in the specified set of
+	 * lines.
+	 * @param lines
+	 *      Lines that should have a prefix.
+	 * @param prefix
+	 *      Prefix to add for each line.
+	 */
+	private static void addPrefix(ArrayList<String> lines, String prefix) {
+		if (null == lines || null == prefix) {
+			return;
+		}
+		int size = lines.size();
+		for (int i = 0; i < size; i++) {
+			String line = lines.get(i);
+			line = prefix + line;
+			lines.set(i, line);
+		}
+	}
+	
+	private static void addParTemplate(
 					ArrayList<String> lines,
-					String line,
-					int p_list_end,
+					String template,
 					Param param,
 					Map<String, Param> parameters,
 					Map<String, String> variables
 	) {
-		int tmp_start = p_list_end + 2;
-		if (tmp_start >= line.length()) {
-			System.err.println("Error: No template name specified for template " +
-							"command : " + line + " : Line ignored!");
-			return;
-		}
-		int tmp_end = line.indexOf(TEMPLATE_EXTENSION, tmp_start);
-		if (tmp_end == -1) {
-			System.err.println("Error: Template extension missing for template " +
-							"command : " + line + " : Line ignored!");
-			return;
-		} else {
-			// need to include extension
-			tmp_end = tmp_end + EXTENSION_LENGTH;
-		}
-		String template = line.substring(tmp_start, tmp_end);
+		// fill in param keywords if used within template name
 		template = fillInParam(template, param);
 		// fill in the template with values of par
 		ArrayList<String> newLines = processTemplate(template, parameters,
@@ -715,8 +843,6 @@ public class Main {
 	 * keywords in the content line are replaced with the parameter's values.
 	 * @param line
 	 *      Line containing a $template$ command
-	 * @param index
-	 *      Index of closing $ of $template$ command identifier in line.
 	 * @param parameters
 	 *      Parameters specified for template containing this template command.
 	 * @return
@@ -724,28 +850,20 @@ public class Main {
 	 */
 	private static CommandResult pLineCmd(
 					String line,
-					int index,
+					int lineNumber,
 					Map<String, Param> parameters
 	) {
-		ArrayList<String> lines = new ArrayList<>();
-		int p_list_start = line.indexOf('[', index);
-		if (-1 == p_list_start) {
-			System.err.println("Error: no parameter list provided for p-line " +
-							"command : " + line + " : Line ignored!");
-			return new CommandResult(1, null);
-		} else {
-			// need to read whats in between list identifiers
-			p_list_start = p_list_start + 1;
-		}
-		int p_list_end = line.indexOf(']', p_list_start);
-		if (-1 == p_list_end) {
-			System.err.println("Error: badly formatted parameter list provided " +
-							"for p-line command : " + line + " : Line ignored!");
+		// find specified list of parameters
+		String[] params = findParamList(line, lineNumber);
+		// ignore if not found (user is warned)
+		if (null == params) {
 			return new CommandResult(1, null);
 		}
-		// have a code line to fill in for a list of parameters
-		String[] params = line.substring(p_list_start, p_list_end).split("\\|");
+		
+		int p_list_end = line.indexOf(']');
 		String paramLine = line.substring(p_list_end + 2);
+		
+		ArrayList<String> lines = new ArrayList<>();
 		// if keyword all is used in list -> fill line for all params
 		for (String p : params) {
 			if (p.equals("all")) {
@@ -805,6 +923,8 @@ public class Main {
 					Map<String, String> variables,
 					Param param
 	) {
+		// find indentation used
+		String indent = findIndentation(line);
 		// find specified template in line
 		int tmp_start = index + 2;
 		if (tmp_start >= line.length()) {
@@ -826,6 +946,10 @@ public class Main {
 		// process template
 		ArrayList<String> newLines = processTemplate(template, parameters,
 						variables, param);
+		if (continueIndentation) {
+			addPrefix(newLines, indent);
+		}
+		
 		if (null == param) {
 			// template was not processed for a specific param
 			if (null == newLines) {
@@ -914,10 +1038,16 @@ public class Main {
 	 * @param param
 	 *      Parameter whose values should be filled into the specified lines.
 	 */
-	private static void fillInParam(ArrayList<String> lines, Param param) {
+	private static ArrayList<String> fillInParam(
+					ArrayList<String> lines,
+					Param param
+	) {
 		if (null == lines) {
-			return;
+			return null;
 		}
+		
+		ArrayList<String> result = new ArrayList<>();
+		
 		// loop through code lines
 		int lineNumber = -1;
 		int size = lines.size() - 1;
@@ -925,9 +1055,10 @@ public class Main {
 			lineNumber++;
 			String line = lines.get(lineNumber);
 			// fill in parameter values for current line
-			line = fillInParam(line, param);
-			lines.set(lineNumber, line);
+			result.add(fillInParam(line, param));
 		}
+		
+		return result;
 	}
 	
 	/**

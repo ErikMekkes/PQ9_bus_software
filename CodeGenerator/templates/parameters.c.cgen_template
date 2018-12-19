@@ -52,16 +52,6 @@ bool set_parameter(param_id pid, void* value) {
 			break;
 		}
 	\}
-
-	$p-block$ [adb_deb] \{
-  		case p#enumName : {
-
-  			break;
-  		}
-  	\}
-
-
-
 		default :
 			res = false;
 	}
