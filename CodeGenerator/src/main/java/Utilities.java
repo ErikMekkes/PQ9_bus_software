@@ -43,7 +43,7 @@ public class Utilities {
 	 * @return
 	 *      ArrayList of param objects representing the CSV file.
 	 */
-	public static ArrayList<Param> readParamCSV(String fileName) {
+	public static ArrayList<Param> readParamCSV(String fileName, int auto_increment_start_id) {
 		if (null == fileName) {
 			return null;
 		}
@@ -52,11 +52,39 @@ public class Utilities {
 			return null;
 		}
 		ArrayList<Param> params = new ArrayList<>();
-		lines.forEach(str -> {
+		int current_id = auto_increment_start_id;
+		boolean found_specified_id = false;
+		for (String str : lines) {
 			String[] parts = str.split(",", -1);
-			Param p = new Param(parts[0], parts[1], parts[2], parts[3]);
+			Param p;
+			if (-1 != auto_increment_start_id) {
+				String id_str = parts[0];
+				try {
+					if (null == id_str) {
+						throw new NumberFormatException();
+					} else {
+						int id = Integer.parseInt(id_str);
+						if (-1 != id) {
+							found_specified_id = true;
+						}
+					}
+				} catch (NumberFormatException e) {
+					System.err.println("id value for parameter is not a number : " +
+									id_str + "," + parts[1] + "," + parts[2] + "," + parts[3]);
+				}
+				p = new Param(current_id, parts[1], parts[2], parts[3]);
+				current_id++;
+			} else {
+				p = new Param(parts[0], parts[1], parts[2], parts[3]);
+			}
 			params.add(p);
-		});
+		}
+		if (found_specified_id) {
+			System.out.print("Warning: auto increment enabled for parameter ids," +
+							" id values from " + fileName + " ignored!");
+			System.out.println(" Set id values to -1 in main .csv file to prevent " +
+							"this warning.");
+		}
 		return params;
 	}
 	

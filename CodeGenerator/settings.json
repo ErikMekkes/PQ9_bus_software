@@ -1,13 +1,14 @@
 {
 	"subsystem_name" : "ADB",
 	"subdirectories" : ["HAL"],
+	"parameters" : "params.csv",
+	"auto_increment_start_id" : 44,
 	"overwrite_existing_files" : true,
 	"continue_indentation" : true,
 	"files_to_generate" : [
 		{
 			"filename" : "../satellite.h",
-			"base_template" : "satellite.h.cgen_template",
-			"parameters" : "params.csv"
+			"base_template" : "satellite.h.cgen_template"
 		},
 		{
 			"filename" : "../satellite.c",

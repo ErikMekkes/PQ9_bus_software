@@ -11,28 +11,34 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 public class Main {
+	// Program defaults
+	private static final String TEMPLATE_EXTENSION = ".cgen_template";
+	private static final int EXTENSION_LENGTH = 14;
+	private static final String TEMPLATE_DIR = "templates/";
+	private static final String SETTINGS_FILE = "settings.json";
+	// main parameter file location
+	private static String parameters_file = "params.csv";
+	// whether or not to overwrite existing files
+	private static boolean overwrite_existing = true;
+	// whether or not to keep indentation for sub-templates
+	private static boolean continue_indentation = true;
+	// start point for autoincrement parameter ids;
+	private static int auto_increment_start_id = -1;
+	
+	// settings json file
+	private static JSONObject settings;
 	// main subsystem / directory name
 	private static String dirName;
 	// subdirectories
 	private static ArrayList<String> subDirs = new ArrayList<>();
 	// files to be generated and their base templates
 	private static Map<String, String> files = new HashMap<>();
-	// whether or not to overwrite existing files
-	private static boolean overwriteExisting = false;
-	// whether or not to keep indentation for sub-templates
-	private static boolean continueIndentation = true;
 	// Map of all available parameters
 	private static Map<String, Param> params = new HashMap<>();
+	private static ArrayList<Param> params_list = new ArrayList<>();
 	// Map of parameters to use for each file
 	private static Map<String, Map<String, Param>> fileParams =
 					new HashMap<>();
-	
-	private static final String TEMPLATE_EXTENSION = ".cgen_template";
-	private static final int EXTENSION_LENGTH = 14;
-	private static final String TEMPLATE_DIR = "templates/";
-	private static final String SETTINGS_FILE = "settings.json";
-	private static final String DEFAULT_PARAMS = "params.csv";
-	private static JSONObject settings;
 
 	public static void main(String[] args) {
 		String intro =
@@ -44,13 +50,16 @@ public class Main {
 		
 		settings = Utilities.readJSONFromFile(SETTINGS_FILE);
 		
-		// Create map of all available parameters
-		ArrayList<Param> pars = Utilities.readParamCSV("params.csv");
-		pars.forEach(par -> params.put(par.name, par));
-		
 		if (null == settings) {
 			return;
 		}
+		
+		loadSettings();
+		
+		// Create map of all available parameters
+		params_list = Utilities.readParamCSV("params.csv", auto_increment_start_id);
+		params_list.forEach(par -> params.put(par.name, par));
+		
 		
 		// find main directory from settings
 		dirName = settings.getString("subsystem_name");
@@ -62,10 +71,8 @@ public class Main {
 			}
 		}
 		
-		loadSettings();
-		
 		// generate all required directories specified in settings
-		System.out.println("Making required directories...");
+		System.out.println("\nMaking required directories...");
 		makeDirs();
 		
 		// find files to generate from settings
@@ -100,21 +107,37 @@ public class Main {
 		System.out.println(exit);
 	}
 	
+	/**
+	 * Loads various settings from the loaded json settings file.
+	 */
 	private static void loadSettings() {
 		// overwriting existing files
 		if (settings.has("overwrite_existing_files")) {
 			if (settings.get("overwrite_existing_files") instanceof Boolean) {
-				overwriteExisting = settings.getBoolean("overwrite_existing_files");
+				overwrite_existing = settings.getBoolean("overwrite_existing_files");
 			}
 		}
 		
 		// keep indentation for subtemplates
 		if (settings.has("continue_indentation")) {
 			if (settings.get("continue_indentation") instanceof Boolean) {
-				continueIndentation = settings.getBoolean("continue_indentation");
+				continue_indentation = settings.getBoolean("continue_indentation");
 			}
 		}
 		
+		// alternative default parameters csv file
+		if (settings.has("parameters")) {
+			if (settings.get("parameters") instanceof String) {
+				parameters_file = (String) settings.get("parameters");
+			}
+		}
+		
+		// enable and set auto increment start id for parameter ids
+		if (settings.has("auto_increment_start_id")) {
+			if (settings.get("auto_increment_start_id") instanceof Integer) {
+				auto_increment_start_id = settings.getInt("auto_increment_start_id");
+			}
+		}
 	}
 	
 	private static void findParams() {
@@ -133,7 +156,8 @@ public class Main {
 									"parameters");
 					// parameters is a filename containing parameter descriptions
 					if (parameters instanceof String) {
-						ArrayList<Param> pars = Utilities.readParamCSV((String) parameters);
+						ArrayList<Param> pars =
+										Utilities.readParamCSV((String) parameters, -1);
 						pars.forEach(p -> filePars.put(p.name, p));
 					} else if (parameters instanceof JSONArray) {
 						// parameters is an array containing parameter dsecriptions
@@ -151,9 +175,7 @@ public class Main {
 						});
 					}
 				} else {
-					// no file specific params specified, use default params.csv
-					ArrayList<Param> pars = Utilities.readParamCSV(DEFAULT_PARAMS);
-					pars.forEach(p -> filePars.put(p.name, p));
+					params_list.forEach(p -> filePars.put(p.name, p));
 				}
 				// add the list of parameters for this file to the map
 				fileParams.put(fileName, filePars);
@@ -164,7 +186,7 @@ public class Main {
 	private static void makeDirs() {
 		Path SubsFolder = Paths.get("./" + dirName);
 		
-		if (Files.exists(SubsFolder) && overwriteExisting) {
+		if (Files.exists(SubsFolder) && overwrite_existing) {
 			deleteDirectoryStream(SubsFolder);
 		}
 		
@@ -180,7 +202,7 @@ public class Main {
 		// Try to make the subdirectories
 		subDirs.forEach(dir -> {
 			Path subDir = Paths.get("./" + dirName + "/" + dir);
-			if (Files.exists(subDir) && overwriteExisting) {
+			if (Files.exists(subDir) && overwrite_existing) {
 				deleteDirectoryStream(subDir);
 			}
 			try {
@@ -201,8 +223,7 @@ public class Main {
 			ArrayList<String> codeLines = processTemplate(baseTemplate, pars);
 			Utilities.writeLinesToFile(
 							codeLines,
-							"./" + dirName + "/" + fileName,
-							overwriteExisting
+							"./" + dirName + "/" + fileName, overwrite_existing
 			);
 		});
 	}
@@ -795,7 +816,7 @@ public class Main {
 				addParTemplate(lines, template, par, parameters, variables);
 			}
 		}
-		if (continueIndentation) {
+		if (continue_indentation) {
 			addPrefix(lines, indent);
 		}
 		return new CommandResult(1, lines);
@@ -946,7 +967,7 @@ public class Main {
 		// process template
 		ArrayList<String> newLines = processTemplate(template, parameters,
 						variables, param);
-		if (continueIndentation) {
+		if (continue_indentation) {
 			addPrefix(newLines, indent);
 		}
 		
@@ -1015,8 +1036,7 @@ public class Main {
 							" where the code for this template could be added.");
 			Utilities.writeLinesToFile(
 							null,
-							TEMPLATE_DIR + "/" + template,
-							overwriteExisting);
+							TEMPLATE_DIR + "/" + template, overwrite_existing);
 			
 			lines.add("// Add " + param.name + " code section here!");
 		}
