@@ -19,6 +19,9 @@
 			"filename" : "parameters.c"
 		},
 		{
+			"filename" : "EPS.xml"
+		},
+		{
 			"filename" : "somefile",
 			"base_template" : "parameters.c.cgen_template",
 			"parameters" : [

@@ -27,6 +27,7 @@ public class Main {
 	private static final int EXTENSION_LENGTH = 14;
 	private static final String TEMPLATE_DIR = "templates/";
 	private static final String SETTINGS_FILE = "settings.json";
+	private static final String DEFAULT_PARAMS = "params.csv";
 	private static JSONObject settings;
 
 	public static void main(String[] args) {
@@ -111,9 +112,8 @@ public class Main {
 					if (parameters instanceof String) {
 						ArrayList<Param> pars = Utilities.readParamCSV((String) parameters);
 						pars.forEach(p -> filePars.put(p.name, p));
-					}
-					// parameters is an array containing parameter dsecriptions
-					if (parameters instanceof JSONArray) {
+					} else if (parameters instanceof JSONArray) {
+						// parameters is an array containing parameter dsecriptions
 						((JSONArray) parameters).forEach(par -> {
 							// description is a default parameter name
 							if (par instanceof String) {
@@ -127,6 +127,10 @@ public class Main {
 							}
 						});
 					}
+				} else {
+					// no file specific params specified, use default params.csv
+					ArrayList<Param> pars = Utilities.readParamCSV(DEFAULT_PARAMS);
+					pars.forEach(p -> filePars.put(p.name, p));
 				}
 				// add the list of parameters for this file to the map
 				fileParams.put(fileName, filePars);
@@ -541,9 +545,11 @@ public class Main {
 		
 		// check if the line contains an opening '{'
 		int block_start = -1;
-		int start_bracket = line.indexOf('{', p_list_end);
+		int start_bracket = line.indexOf("\\{", p_list_end);
 		if (-1 == start_bracket) {
-			System.err.println("Error: no starting bracket '{' for p-block command " +
+			System.err.println("Error: no starting bracket '\\{' for p-block " +
+							"command" +
+							" " +
 							" : " + line + " on line : " + lineNumber + " : Line ignored!");
 			//TODO: assuming start bracket is on same line
 			return new CommandResult(1, null);
@@ -559,7 +565,7 @@ public class Main {
 		while (block_line < size) {
 			block_line++;
 			String currentLine = template.get(block_line);
-			int end_bracket = currentLine.indexOf('}');
+			int end_bracket = currentLine.indexOf("\\}");
 			if (-1 != end_bracket) {
 				block_end = block_line;
 				break;
@@ -567,7 +573,7 @@ public class Main {
 		}
 		
 		if (-1 == block_end) {
-			System.err.println("Error: no end bracket '}' for p-block command " +
+			System.err.println("Error: no end bracket '\\}' for p-block command " +
 							" : " + line + " on line : " + lineNumber + " : Line ignored!");
 			return new CommandResult(1, null);
 		}
@@ -702,6 +708,20 @@ public class Main {
 		checkParamTemplateResult(lines, newLines, template, param);
 	}
 	
+	/**
+	 * Handles a p-line command. Displays a warning if no parameter list is
+	 * provided. The content after the specified parameter list is added once
+	 * for each specified parameter in the list. For each specific parameter
+	 * keywords in the content line are replaced with the parameter's values.
+	 * @param line
+	 *      Line containing a $template$ command
+	 * @param index
+	 *      Index of closing $ of $template$ command identifier in line.
+	 * @param parameters
+	 *      Parameters specified for template containing this template command.
+	 * @return
+	 *      Command result specifying lines to remove and lines
+	 */
 	private static CommandResult pLineCmd(
 					String line,
 					int index,
@@ -858,7 +878,7 @@ public class Main {
 							" was empty!" +
 							" A comment line has been added in the output to indicate" +
 							" where the code for this template could be added.");
-			lines.add("\\\\ Add " + param.name + " code section here!");
+			lines.add("// Add " + param.name + " code section here!");
 		} else if (null != newLines) {
 			// template was found and was not empty, add result to output
 			lines.addAll(newLines);
@@ -874,7 +894,7 @@ public class Main {
 							TEMPLATE_DIR + "/" + template,
 							overwriteExisting);
 			
-			lines.add("\\\\ Add " + param.name + " code section here!");
+			lines.add("// Add " + param.name + " code section here!");
 		}
 		return new CommandResult(1, lines);
 	}

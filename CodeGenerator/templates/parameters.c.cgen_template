@@ -45,12 +45,23 @@ void get_parameter(param_id pid, void *value, uint8_t *buf, uint16_t *size) {
 bool set_parameter(param_id pid, void* value) {
 	bool res = true;
 	switch (pid) {
+
 	$p-block$ [adb_deb|SBSYS_reset_clr_int_wdg|SBSYS_reset_cmd_int_wdg|SBSYS_sensor_loop] \{
 		case p#enumName : {
 			$p-template$ [p#name] p#name/set_parameter.cgen_template
 			break;
 		}
 	\}
+
+	$p-block$ [adb_deb] \{
+  		case p#enumName : {
+
+  			break;
+  		}
+  	\}
+
+
+
 		default :
 			res = false;
 	}
