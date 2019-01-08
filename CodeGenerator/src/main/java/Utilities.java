@@ -201,7 +201,7 @@ public class Utilities {
 					br.write(str);
 					br.newLine();
 				} catch (IOException e) {
-					System.err.println("Error writing string" + str + "to " +
+					System.err.println("Error: writing string" + str + "to " +
 									"file!");
 				}
 			});
@@ -252,5 +252,44 @@ public class Utilities {
 			sb.append((char) cp);
 		}
 		return sb.toString();
+	}
+	
+	public static void checkBraces(
+					ArrayList<String> code,
+					String fileName,
+					String templateFile
+	) {
+		int braces = 0;
+		int size = code.size();
+		int i;
+		for (i = 0; i < size; i++) {
+			String line = code.get(i);
+			int lineBraces = countBraces(line);
+			braces += lineBraces;
+			if (braces < 0) {
+				System.err.println("Error: Extra closing bracket on line " + i + " of" +
+								" code produced by " + templateFile + " for " + fileName + "!");
+				return;
+			}
+		}
+		if (braces > 0) {
+			System.err.println("Error: Missing closing bracket on line " + i + " of" +
+							" code produced by " + templateFile + " for " + fileName + "!");
+		}
+	}
+	
+	private static int countBraces(String line) {
+		int braces = 0;
+		char[] chars = line.toCharArray();
+		int size = chars.length;
+		for (int i = 0; i < size; i++) {
+			if (chars[i] == '{') {
+				braces++;
+			}
+			if (chars[i] == '}') {
+				braces--;
+			}
+		}
+		return braces;
 	}
 }
