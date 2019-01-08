@@ -37,13 +37,26 @@ public class Utilities {
 	
 	/**
 	 * Reads a CSV file containing parameters as lines of comma separated values.
-	 * Format : param_id_value, param_id_name, data_type, default_value
+	 * Format : param_id_value, param_id_name, data_type, default_value.
+	 *
+	 * Allows an integer start value to be specified for auto incrementing
+	 * parameter ids. The parameters from the csv file will be given ids
+	 * in order of appearance starting from this value instead of whatever ids
+	 * may have been specified in the csv file. Specify value as -1 to disable.
+	 *
+	 * Warns when ids were overridden by auto-incrementing, either disable
+	 * auto-incrementing or explicitly make ids in csv 'unspecified' by
+	 * setting their id to -1 to prevent this warning.
+	 *
 	 * @param fileName
 	 *      The local CSV file to read into memory as parameters.
+	 * @param auto_increment_start_id
+	 *      The start value to be used for auto incrementing ids. -1 to disable.
 	 * @return
 	 *      ArrayList of param objects representing the CSV file.
 	 */
-	public static ArrayList<Param> readParamCSV(String fileName) {
+	public static ArrayList<Param> readParamCSV(String fileName, int auto_increment_start_id) {
+		
 		if (null == fileName) {
 			return null;
 		}
@@ -51,12 +64,52 @@ public class Utilities {
 		if (null == lines) {
 			return null;
 		}
+		
 		ArrayList<Param> params = new ArrayList<>();
-		lines.forEach(str -> {
+		// start counter and keep track if we found a specified id
+		int current_id = auto_increment_start_id;
+		boolean found_specified_id = false;
+		
+		for (String str : lines) {
 			String[] parts = str.split(",", -1);
-			Param p = new Param(parts[0], parts[1], parts[2], parts[3]);
+			Param p;
+			
+			if (-1 != auto_increment_start_id) {
+				// should use auto-incrementing ids
+				String id_str = parts[0];
+				// read specified id (string -> int)
+				try {
+					if (null == id_str) {
+						throw new NumberFormatException();
+					} else {
+						int id = Integer.parseInt(id_str);
+						// if id is not -1 ít was specified
+						if (-1 != id) {
+							found_specified_id = true;
+						}
+					}
+				} catch (NumberFormatException e) {
+					System.err.println("id value for parameter is not a number : " +
+									id_str + "," + parts[1] + "," + parts[2] + "," + parts[3]);
+				}
+				
+				p = new Param(current_id, parts[1], parts[2], parts[3]);
+				current_id++;
+			} else {
+				// use specified ids
+				p = new Param(parts[0], parts[1], parts[2], parts[3]);
+			}
 			params.add(p);
-		});
+		}
+		
+		// incrementing id was used, but some ids were specified (not -1)
+		if (found_specified_id) {
+			System.out.print("Warning: auto increment enabled for parameter ids," +
+							" id values from " + fileName + " ignored!");
+			System.out.println(" Set id values to -1 in main .csv file to prevent " +
+							"this warning.");
+		}
+		
 		return params;
 	}
 	

@@ -1,5 +1,5 @@
-$var$ #var1# bar
-$var$ #x# 24
+$var$ \{var1\} bar
+$var$ \{x\} 24
 	subtemplate
 	has var1
 	cool

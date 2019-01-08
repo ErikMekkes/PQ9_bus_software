@@ -1,4 +1,4 @@
-$var$ #var1# bar
+$var$ \{var1\} bar
 	subtemplate
 	has var1
 	cool

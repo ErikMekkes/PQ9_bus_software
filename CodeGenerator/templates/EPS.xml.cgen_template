@@ -1,0 +1,27 @@
+// MPPDigitalPot = parameter name
+<xtce:MetaCommand name="MPPDigitalPot">
+    <xtce:LongDescription>MPP Digital pot</xtce:LongDescription>
+    <xtce:BaseMetaCommand metaCommandRef="/Delfi-PQ/PQ9">
+        <xtce:ArgumentAssignmentList>
+            // MPP = subsystem name
+            <xtce:ArgumentAssignment argumentName="Destination" argumentValue="MPP"/>
+            <xtce:ArgumentAssignment argumentName="Size" argumentValue="6"/>
+            <xtce:ArgumentAssignment argumentName="Source" argumentValue="OBC"/>
+            <xtce:ArgumentAssignment argumentName="Counter" argumentValue="0"/>
+            <xtce:ArgumentAssignment argumentName="Service" argumentValue="GetSetParam"/>
+            <xtce:ArgumentAssignment argumentName="Request" argumentValue="Set"/>
+        </xtce:ArgumentAssignmentList>
+    </xtce:BaseMetaCommand>
+    <xtce:ArgumentList>
+        // value type corresponds with dataType but different naming --> make converter
+        <xtce:Argument name="value" argumentTypeRef="/Delfi-PQ/short"/>
+    </xtce:ArgumentList>
+    // MPPDPOT = parameter name
+    <xtce:CommandContainer name="MPPDPOT">
+        <xtce:EntryList>
+            // binaryValue = hex version of parameter id --> make hex converter
+            <xtce:FixedValueEntry binaryValue="41" sizeInBits="8"/>
+            <xtce:ArgumentRefEntry argumentRef="value"/>
+        </xtce:EntryList>
+    </xtce:CommandContainer>
+</xtce:MetaCommand>
