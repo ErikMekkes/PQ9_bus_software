@@ -4,6 +4,7 @@
 	"parameters" : "params.csv",
 	"auto_increment_start_id" : 44,
 	"overwrite_existing_files" : true,
+	"clear_existing_folders" : false,
 	"continue_indentation" : true,
 	"files_to_generate" : [
 		{
