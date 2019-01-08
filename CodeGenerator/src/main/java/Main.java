@@ -10,6 +10,9 @@ import java.util.regex.Pattern;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+/**
+ * Main program, starting point for executable jar file.
+ */
 public class Main {
 	// Program defaults
 	private static final String TEMPLATE_EXTENSION = ".cgen_template";
@@ -39,7 +42,13 @@ public class Main {
 	// Map of parameters to use for each file
 	private static Map<String, Map<String, Param>> fileParams =
 					new HashMap<>();
-
+	
+	/**
+	 * Main program, starting point for executable jar file.
+	 *
+	 * @param args
+	 *      Arguments provided to program when starting the program.
+	 */
 	public static void main(String[] args) {
 		String intro =
 					"\nThis is the PQ9_bus_software subsystem code generator!\n" +
@@ -93,7 +102,7 @@ public class Main {
 			}
 		}
 		
-		findParams();
+		loadParams();
 		
 		// generate all required files specified in settings
 		System.out.println("Generating specified files...");
@@ -140,7 +149,10 @@ public class Main {
 		}
 	}
 	
-	private static void findParams() {
+	/**
+	 * Loads specified parameters per file from settings.json.
+	 */
+	private static void loadParams() {
 		// find parameters to use for each file
 		JSONArray sFiles = settings.getJSONArray("files_to_generate");
 		for (Object file : sFiles) {
@@ -183,6 +195,12 @@ public class Main {
 		}
 	}
 	
+	/**
+	 * Checks if any of the specified directories should be created.
+	 *
+	 * Deletes pre-existing directories if overwrite existing is enabled.
+	 * TODO: this is probably really bad, also removes other files added there
+	 */
 	private static void makeDirs() {
 		Path SubsFolder = Paths.get("./" + subSysName);
 		
@@ -216,6 +234,12 @@ public class Main {
 		});
 	}
 	
+	/**
+	 * Checks if any of the specified files should be created or overwritten.
+	 *
+	 * Set of files to create is specified by settings.json
+	 * Settings.json also specifies whether files should be overwritten.
+	 */
 	private static void makeFiles() {
 		files.forEach((fileName,baseTemplate) -> {
 			System.out.println("\nProcessing file : " + fileName);
@@ -227,7 +251,15 @@ public class Main {
 			);
 		});
 	}
-
+	
+	/**
+	 * Deletes directories and subdirectories of the specified path.
+	 *
+	 * Used when overwrite existing files is enabled.
+	 *
+	 * @param path
+	 *      Starting path to delete
+	 */
 	private static void deleteDirectoryStream(Path path) {
 		try {
 			Files.walk(path)
@@ -264,7 +296,7 @@ public class Main {
 		// Use empty initial set of variables
 		HashMap<String, String> vars = new HashMap<>();
 		vars.put("s#name", subSysName);
-		return processTemplate(templateFile, parameters, vars, null);
+		return processTemplate(templateFile, parameters, vars);
 	}
 	
 	/**
@@ -292,13 +324,12 @@ public class Main {
 	private static ArrayList<String> processTemplate(
 					String templateFile,
 					Map<String, Param> parameters,
-					Map<String, String> variables,
-					Param param
+					Map<String, String> variables
 	) {
 		// read code from template file
 		ArrayList<String> code = Utilities.readLinesFromFile(TEMPLATE_DIR + templateFile);
 		
-		return processTemplate(templateFile, code, parameters, variables, param);
+		return processTemplate(templateFile, code, parameters, variables);
 	}
 	
 	/**
@@ -327,8 +358,7 @@ public class Main {
 					String templateFile,
 					ArrayList<String> code,
 					Map<String, Param> parameters,
-					Map<String, String> variables,
-					Param param
+					Map<String, String> variables
 	) {
 		if (null == code) {
 			// no template lines, user is already warned
@@ -347,17 +377,22 @@ public class Main {
 		// loop through code lines, replace all var keys with var values
 		fillInVariables(code, vars);
 		
-		// If template is being processed for a specific param, fill in it's values
-		if (null != param) {
-			code = fillInParam(code, param);
-		}
-		
 		// check for commands
-		parseCommands(code, parameters, vars, param);
+		parseCommands(code, parameters, vars);
 		
 		return code;
 	}
 	
+	/**
+	 * Loops through the template to check for additional variable definitions.
+	 *
+	 * @param template
+	 *        Filename of template that is being checked.
+	 * @param code
+	 *        Contents of the template file.
+	 * @param variables
+	 *        Existing set of variables to add to.
+	 */
 	private static void parseVariables(
 					String template,
 					ArrayList<String> code,
@@ -379,6 +414,18 @@ public class Main {
 		}
 	}
 	
+	/**
+	 * Checks if a template line defines an additional variable.
+	 *
+	 * @param line
+	 *      Line to check.
+	 * @param template
+	 *      Filename of template that is being checked.
+	 * @param variables
+	 *      Existing set of variables to add to.
+	 * @return
+	 *      Whether a variable definition was found.
+	 */
 	private static boolean parseVariable(
 					String line,
 					String template,
@@ -442,6 +489,15 @@ public class Main {
 		return false;
 	}
 	
+	/**
+	 * Loops through a specified set of code and replaces variables with their
+	 * specified values.
+	 *
+	 * @param code
+	 *      Code lines for which variables should be filled in.
+	 * @param variables
+	 *      Variables to fill in.
+	 */
 	private static void fillInVariables(
 					ArrayList<String> code,
 					HashMap<String, String> variables
@@ -471,15 +527,11 @@ public class Main {
 	 *      Map of all parameters specified for this code section.
 	 * @param variables
 	 *      Map of all variables specified for this code section.
-	 * @param param
-	 *      Optional parameter whose values should be filled in for this code
-	 *      section. Null if not specified.
 	 */
 	private static void parseCommands(
 					ArrayList<String> template,
 					Map<String, Param> parameters,
-					Map<String, String> variables,
-					Param param
+					Map<String, String> variables
 	) {
 		// loop through lines of code
 		int lineNumber = -1;
@@ -488,8 +540,7 @@ public class Main {
 			lineNumber++;
 			// check if line is a command
 			CommandResult res = parseCommand(template, lineNumber,
-							parameters,	variables,
-							param);
+							parameters,	variables);
 			if (null != res) {
 				// remove specified number of lines
 				for (int i = 0; i < res.removed; i++) {
@@ -525,9 +576,6 @@ public class Main {
 	 *      Map of all parameters specified for this code section.
 	 * @param variables
 	 *      Map of all variables specified for this code section.
-	 * @param param
-	 *      Optional parameter whose values should be filled in for this code
-	 *      section. Null if not specified.
 	 * @return
 	 *      Set of code lines produced by the command in the specified line.
 	 *      Empty if no lines generated by the command in the specified line.
@@ -537,8 +585,7 @@ public class Main {
 					ArrayList<String> template,
 					int lineNumber,
 					Map<String, Param> parameters,
-					Map<String, String> variables,
-					Param param
+					Map<String, String> variables
 	) {
 		String line = template.get(lineNumber);
 		// try to find $command$ section in provided line
@@ -569,7 +616,7 @@ public class Main {
 			case "p-line" :
 				return pLineCmd(line, lineNumber, parameters);
 			case "template" :
-				return templateCmd(line, c_end, parameters, variables, param);
+				return templateCmd(line, c_end, parameters, variables);
 			case "param" :
 				//TODO : could make a command to add a new param type from template
 			case "p-block" :
@@ -722,10 +769,13 @@ public class Main {
 				});
 				ArrayList<Param> sorted = sortParams(ps);
 				sorted.forEach(par -> {
-					// fill in the template with values of par
-					ArrayList<String> pCode = fillInParam(code, par);
+					// make local copy so parent variables aren't modified
+					HashMap<String, String> vars = new HashMap<>(variables);
+					ArrayList<String> pCode = new ArrayList<>(code);
+					// add param vars and process
+					addParamVariables(vars, par);
 					ArrayList<String> blockLines = processTemplate(null, pCode, parameters,
-									variables, par);
+									vars);
 					result.addAll(blockLines);
 				});
 				return new CommandResult((block_end + 1 - block_start), result);
@@ -740,14 +790,31 @@ public class Main {
 								"skipped!");
 				continue;
 			}
-			fillInParam(code, par);
-			// fill in the template with values of par
-			ArrayList<String> pCode = fillInParam(code, par);
+			// make local copy so parent variables aren't modified
+			HashMap<String, String> vars = new HashMap<>(variables);
+			ArrayList<String> pCode = new ArrayList<>(code);
+			// add param vars and process
+			addParamVariables(vars, par);
 			ArrayList<String> blockLines = processTemplate(null, pCode, parameters,
-							variables, par);
+							vars);
 			result.addAll(blockLines);
 		}
 		return new CommandResult((block_end + 1 - block_start), result);
+	}
+	
+	/**
+	 * Adds the parameter keywords as variables to be filled in.
+	 * @param vars
+	 *      Set of variables to add parameter keywords to.
+	 * @param param
+	 *      Parameter from which the keywords should be used.
+	 */
+	private static void addParamVariables(HashMap<String, String> vars, Param param) {
+		vars.put("p#name", param.name);
+		vars.put("p#id", Integer.toString(param.id));
+		vars.put("p#enumName", param.enumName);
+		vars.put("p#dataType", param.dataType);
+		vars.put("p#defaultValue", param.defaultValue);
 	}
 	
 	private static CommandResult pTemplateCmd(
@@ -799,7 +866,13 @@ public class Main {
 				});
 				ArrayList<Param> sorted = sortParams(ps);
 				sorted.forEach(par -> {
-					addParTemplate(lines, template, par,parameters,	variables);
+					// make local copy so parent variables aren't modified
+					HashMap<String, String> vars = new HashMap<>(variables);
+					// add param vars and process
+					addParamVariables(vars, par);
+					ArrayList<String> newLines = processTemplate(template, parameters,
+									vars);
+					checkParamTemplateResult(lines, newLines, template, par);
 				});
 				break;
 			}
@@ -814,7 +887,13 @@ public class Main {
 									"skipped!");
 					continue;
 				}
-				addParTemplate(lines, template, par, parameters, variables);
+				// make local copy so parent variables aren't modified
+				HashMap<String, String> vars = new HashMap<>(variables);
+				// add param vars and process
+				addParamVariables(vars, par);
+				ArrayList<String> newLines = processTemplate(template, parameters,
+								vars);
+				checkParamTemplateResult(lines, newLines, template, par);
 			}
 		}
 		if (continue_indentation) {
@@ -841,21 +920,6 @@ public class Main {
 			line = prefix + line;
 			lines.set(i, line);
 		}
-	}
-	
-	private static void addParTemplate(
-					ArrayList<String> lines,
-					String template,
-					Param param,
-					Map<String, Param> parameters,
-					Map<String, String> variables
-	) {
-		// fill in param keywords if used within template name
-		template = fillInParam(template, param);
-		// fill in the template with values of par
-		ArrayList<String> newLines = processTemplate(template, parameters,
-						variables, param);
-		checkParamTemplateResult(lines, newLines, template, param);
 	}
 	
 	/**
@@ -933,8 +997,6 @@ public class Main {
 	 *      Parameters specified for template containing this template command.
 	 * @param variables
 	 *      Variables specified for template containing this template command.
-	 * @param param
-	 *      Parameter whose values should be filled into the specified template.
 	 * @return
 	 *      Output code produced from the template as a List of String objects.
 	 */
@@ -942,8 +1004,7 @@ public class Main {
 					String line,
 					int index,
 					Map<String, Param> parameters,
-					Map<String, String> variables,
-					Param param
+					Map<String, String> variables
 	) {
 		// find indentation used
 		String indent = findIndentation(line);
@@ -967,24 +1028,17 @@ public class Main {
 		
 		// process template
 		ArrayList<String> newLines = processTemplate(template, parameters,
-						variables, param);
+						variables);
 		if (continue_indentation) {
 			addPrefix(newLines, indent);
 		}
 		
-		if (null == param) {
-			// template was not processed for a specific param
-			if (null == newLines) {
-				// template not found, user is already warned, return empty
-				return new CommandResult(1, null);
-			} else {
-				// template found, return result from template
-				return new CommandResult(1, newLines);
-			}
+		if (null == newLines) {
+			// template not found, user is already warned, return empty
+			return new CommandResult(1, null);
 		} else {
-			// check if processing template for a specific param went correctly
-			ArrayList<String> lines = new ArrayList<>();
-			return checkParamTemplateResult(lines, newLines, template, param);
+			// template found, return result from template
+			return new CommandResult(1, newLines);
 		}
 	}
 	
@@ -1042,44 +1096,6 @@ public class Main {
 			lines.add("// Add " + param.name + " code section here!");
 		}
 		return new CommandResult(1, lines);
-	}
-	
-	/**
-	 * Fills in the values of the specified parameter for the parameter
-	 * keywords in the specified set of template lines.
-	 * Defined parameter keywords that get replaced with values are:
-	 *  - p#name : replaced with name of parameter
-	 *  - p#id : replaced with enum integer identifier of parameter
-	 *  - p#enumName : replaced with name + '_param_id' suffix
-	 *  - p#dataType : replaced with data type of parameter
-	 *  - p#defaultValue : replaced with default value of parameter
-	 *
-	 * @param lines
-	 *      Template lines as a list of String objects.
-	 * @param param
-	 *      Parameter whose values should be filled into the specified lines.
-	 */
-	private static ArrayList<String> fillInParam(
-					ArrayList<String> lines,
-					Param param
-	) {
-		if (null == lines) {
-			return null;
-		}
-		
-		ArrayList<String> result = new ArrayList<>();
-		
-		// loop through code lines
-		int lineNumber = -1;
-		int size = lines.size() - 1;
-		while (lineNumber < size){
-			lineNumber++;
-			String line = lines.get(lineNumber);
-			// fill in parameter values for current line
-			result.add(fillInParam(line, param));
-		}
-		
-		return result;
 	}
 	
 	/**
