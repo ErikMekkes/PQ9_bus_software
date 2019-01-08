@@ -28,7 +28,7 @@ public class Main {
 	// settings json file
 	private static JSONObject settings;
 	// main subsystem / directory name
-	private static String dirName;
+	private static String subSysName;
 	// subdirectories
 	private static ArrayList<String> subDirs = new ArrayList<>();
 	// files to be generated and their base templates
@@ -62,7 +62,7 @@ public class Main {
 		
 		
 		// find main directory from settings
-		dirName = settings.getString("subsystem_name");
+		subSysName = settings.getString("subsystem_name");
 		// find subdirectories from settings
 		JSONArray subdirectories = settings.getJSONArray("subdirectories");
 		for (Object folderName : subdirectories) {
@@ -101,8 +101,8 @@ public class Main {
 		
 		// Indicate ending for user.
 		String exit =
-					"\nSuccessfully finished generating " + dirName + " Subsystem!\n" +
-					"Please do check the output files in ./" + dirName +
+					"\nSuccessfully finished generating " + subSysName + " Subsystem!\n" +
+					"Please do check the output files in ./" + subSysName +
 					" and take any possible warnings provided above into account";
 		System.out.println(exit);
 	}
@@ -184,7 +184,7 @@ public class Main {
 	}
 	
 	private static void makeDirs() {
-		Path SubsFolder = Paths.get("./" + dirName);
+		Path SubsFolder = Paths.get("./" + subSysName);
 		
 		if (Files.exists(SubsFolder) && overwrite_existing) {
 			deleteDirectoryStream(SubsFolder);
@@ -194,14 +194,14 @@ public class Main {
 		try {
 			Files.createDirectory(SubsFolder);
 		} catch(FileAlreadyExistsException e) {
-			System.err.println("Warning: The main directory " + dirName + " already" +
+			System.err.println("Warning: The main directory " + subSysName + " already" +
 							" exists!");
 		} catch (IOException e) {
-			System.err.println("Error: unable to create main directory " + dirName + "!");
+			System.err.println("Error: unable to create main directory " + subSysName + "!");
 		}
 		// Try to make the subdirectories
 		subDirs.forEach(dir -> {
-			Path subDir = Paths.get("./" + dirName + "/" + dir);
+			Path subDir = Paths.get("./" + subSysName + "/" + dir);
 			if (Files.exists(subDir) && overwrite_existing) {
 				deleteDirectoryStream(subDir);
 			}
@@ -223,7 +223,7 @@ public class Main {
 			ArrayList<String> codeLines = processTemplate(baseTemplate, pars);
 			Utilities.writeLinesToFile(
 							codeLines,
-							"./" + dirName + "/" + fileName, overwrite_existing
+							"./" + subSysName + "/" + fileName, overwrite_existing
 			);
 		});
 	}
@@ -235,7 +235,7 @@ public class Main {
 					.map(Path::toFile)
 					.forEach(File::delete);
 		} catch (IOException e) {
-			System.out.println("Error deleting " + dirName + " folder!");
+			System.out.println("Error deleting " + subSysName + " folder!");
 		}
 	}
 	
@@ -263,6 +263,7 @@ public class Main {
 					Map<String, Param> parameters) {
 		// Use empty initial set of variables
 		HashMap<String, String> vars = new HashMap<>();
+		vars.put("s#name", subSysName);
 		return processTemplate(templateFile, parameters, vars, null);
 	}
 	
@@ -406,7 +407,7 @@ public class Main {
 		// found command in between $$ command identifiers -> execute command
 		String cmd = line.substring(c_start, c_end);
 		if (cmd.equals("var")) {
-			int v_name_start = line.indexOf('#', c_end);
+			int v_name_start = line.indexOf("\\{");
 			if (-1 == v_name_start) {
 				// no starting '#', no name specified
 				System.err.println("Error: no starting '#' found for variable name " +
@@ -416,7 +417,7 @@ public class Main {
 				// need to parse what's in between '#' characters...
 				v_name_start = v_name_start +1;
 			}
-			int v_name_end = line.indexOf('#', v_name_start);
+			int v_name_end = line.indexOf("\\}");
 			if (-1 == v_name_end) {
 				System.err.println("Error: no end '#' found for variable name in " +
 								"line :" + line + " : Line ignored!");
