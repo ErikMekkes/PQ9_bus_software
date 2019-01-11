@@ -2,8 +2,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Includes template processing functions
@@ -196,7 +194,7 @@ public class TemplateProcessor {
 	) {
 		// try to find $command$ section in provided line
 		if (null == line) {
-			System.err.println("Error: Line to check for command was null!");
+			Utilities.log("Error: Line to check for command was null!");
 			return false;
 		}
 		int c_start = line.indexOf('$');
@@ -209,7 +207,7 @@ public class TemplateProcessor {
 		}
 		int c_end = line.indexOf('$', c_start);
 		if (-1 == c_end) {
-			System.err.println("Error: No end '$' found for command in line: " +
+			Utilities.log("Error: No end '$' found for command in line: " +
 							line + " : Line ignored!");
 			return true;
 		}
@@ -220,7 +218,7 @@ public class TemplateProcessor {
 			int v_name_start = line.indexOf("\\{");
 			if (-1 == v_name_start) {
 				// no starting '#', no name specified
-				System.err.println("Error: no starting '#' found for variable name " +
+				Utilities.log("Error: no starting '#' found for variable name " +
 								"in line :" + line + " : Line ignored!");
 				return true;
 			} else {
@@ -229,7 +227,7 @@ public class TemplateProcessor {
 			}
 			int v_name_end = line.indexOf("\\}");
 			if (-1 == v_name_end) {
-				System.err.println("Error: no end '#' found for variable name in " +
+				Utilities.log("Error: no end '#' found for variable name in " +
 								"line :" + line + " : Line ignored!");
 				return true;
 			}
@@ -238,9 +236,9 @@ public class TemplateProcessor {
 			// if variable was already defined in parent template, warn user
 			if (variables.containsKey(v_name)) {
 				if (null == template) {
-					System.err.println("Warning: template overrides parent template variable " + v_name + " locally with value " + v_value);
+					Utilities.log("Warning: template overrides parent template variable " + v_name + " locally with value " + v_value);
 				} else {
-					System.err.println("Warning: template " + template + " overrides parent template variable " + v_name + " locally with value " + v_value);
+					Utilities.log("Warning: template " + template + " overrides parent template variable " + v_name + " locally with value " + v_value);
 				}
 			}
 			// store variable in map as key, value
@@ -353,7 +351,7 @@ public class TemplateProcessor {
 		String line = template.get(lineNumber);
 		// try to find $command$ section in provided line
 		if (null == line) {
-			System.err.println("Error: Line to check for command was null!");
+			Utilities.log("Error: Line to check for command was null!");
 			return null;
 		}
 		int c_start = line.indexOf('$');
@@ -366,7 +364,7 @@ public class TemplateProcessor {
 		}
 		int c_end = line.indexOf('$', c_start);
 		if (-1 == c_end) {
-			System.err.println("Error: No end '$' found for command in line: " +
+			Utilities.log("Error: No end '$' found for command in line: " +
 							line + " : Line ignored!");
 			return new CommandResult(1, null);
 		}
@@ -385,51 +383,18 @@ public class TemplateProcessor {
 			case "p-block" :
 				return pBlockCmd(template, lineNumber, parameters, variables);
 			default :
-				System.err.println("Error: Unrecognized command : " + cmd);
+				Utilities.log("Error: Unrecognized command : " + cmd);
 				return new CommandResult(1, null);
 		}
-	}
-	
-	/**
-	 * Returns an exact String copy of the leading whitespace used in the
-	 * specified line.
-	 * @param line
-	 *      Line of which leading whitespace should be found.
-	 * @return
-	 *      Leading whitespace of line.
-	 */
-	private String findIndentation(String line) {
-		// regex matching anything except whitespace
-		Pattern notWhiteSpace = Pattern.compile("\\S");
-		// first occurrence of regex
-		int indentationEnd = indexOf(notWhiteSpace, line);
-		// return part between string start and first non whitespace
-		return line.substring(0, indentationEnd);
-	}
-	
-	/**
-	 * Returns the index of the first occurrence of the pattern within the
-	 * specified String.
-	 *
-	 * @param pattern
-	 *      Pattern to look for.
-	 * @param str
-	 *      String to search.
-	 * @return
-	 *      Index of Pattern in String (first occurrence).
-	 */
-	private int indexOf(Pattern pattern, String str) {
-		Matcher matcher = pattern.matcher(str);
-		return matcher.find() ? matcher.start() : -1;
 	}
 	
 	private String[] findParamList(String line, int lineNumber) {
 		// find start of parameter list
 		int p_list_start = line.indexOf('[');
 		if (-1 == p_list_start) {
-			System.err.print("Error: no parameter list provided on line : " +
+			System.out.print("Error: no parameter list provided on line : " +
 							lineNumber + " : " + line + " : Line ignored! ");
-			System.err.println("Missing opening bracket?");
+			Utilities.log("Missing opening bracket?");
 			return null;
 		} else {
 			// need to read whats in between list identifiers
@@ -438,9 +403,9 @@ public class TemplateProcessor {
 		// find end of parameter list
 		int p_list_end = line.indexOf(']', p_list_start);
 		if (-1 == p_list_end) {
-			System.err.print("Error: no parameter list provided on line : " +
+			System.out.print("Error: no parameter list provided on line : " +
 							lineNumber + " : " + line + " : Line ignored! ");
-			System.err.println("Missing closing bracket?");
+			Utilities.log("Missing closing bracket?");
 			return null;
 		}
 		
@@ -480,7 +445,7 @@ public class TemplateProcessor {
 		int block_start = -1;
 		int start_bracket = line.indexOf("\\{");
 		if (-1 == start_bracket) {
-			System.err.println("Error: no starting bracket '\\{' for p-block " +
+			Utilities.log("Error: no starting bracket '\\{' for p-block " +
 							"command" +
 							" " +
 							" : " + line + " on line : " + lineNumber + " : Line ignored!");
@@ -506,7 +471,7 @@ public class TemplateProcessor {
 		}
 		
 		if (-1 == block_end) {
-			System.err.println("Error: no end bracket '\\}' for p-block command " +
+			Utilities.log("Error: no end bracket '\\}' for p-block command " +
 							" : " + line + " on line : " + lineNumber + " : Line ignored!");
 			return new CommandResult(1, null);
 		}
@@ -530,7 +495,7 @@ public class TemplateProcessor {
 				parameters.forEach((name, par) -> {
 					ps.add(par);
 				});
-				ArrayList<Param> sorted = sortParams(ps);
+				ArrayList<Param> sorted = Param.sortParams(ps);
 				sorted.forEach(par -> {
 					// make local copy so parent variables aren't modified
 					HashMap<String, String> vars = new HashMap<>(variables);
@@ -549,7 +514,7 @@ public class TemplateProcessor {
 			// fill in the template
 			Param par = parameters.get(p);
 			if (null == par) {
-				System.err.println("Error: Unknown parameter : " + p + " : Parameter " +
+				Utilities.log("Error: Unknown parameter : " + p + " : Parameter " +
 								"skipped!");
 				continue;
 			}
@@ -587,7 +552,7 @@ public class TemplateProcessor {
 					Map<String, String> variables
 	) {
 		// find indentation used
-		String indent = findIndentation(line);
+		String indent = Utilities.findIndentation(line);
 		// find specified list of parameters
 		String[] params = findParamList(line, lineNumber);
 		// ignore if not found (user is warned)
@@ -599,13 +564,13 @@ public class TemplateProcessor {
 		// try to find specified template filename
 		int tmp_start = p_list_end + 2;
 		if (tmp_start >= line.length()) {
-			System.err.println("Error: No template name specified for template " +
+			Utilities.log("Error: No template name specified for template " +
 							"command : " + line + " : Line ignored!");
 			return new CommandResult(1, null);
 		}
 		int tmp_end = line.indexOf(templateExtension, tmp_start);
 		if (tmp_end == -1) {
-			System.err.println("Error: Template extension missing for template " +
+			Utilities.log("Error: Template extension missing for template " +
 							"command : " + line + " : attempting with appended extension!");
 			return new CommandResult(1, null);
 		} else {
@@ -627,7 +592,7 @@ public class TemplateProcessor {
 				parameters.forEach((name, par) -> {
 					ps.add(par);
 				});
-				ArrayList<Param> sorted = sortParams(ps);
+				ArrayList<Param> sorted = Param.sortParams(ps);
 				sorted.forEach(par -> {
 					// make local copy so parent variables aren't modified
 					HashMap<String, String> vars = new HashMap<>(variables);
@@ -646,7 +611,7 @@ public class TemplateProcessor {
 				// fill in the template
 				Param par = parameters.get(p);
 				if (null == par) {
-					System.err.println("Error: Unknown parameter : " + p + " : Parameter " +
+					Utilities.log("Error: Unknown parameter : " + p + " : Parameter " +
 									"skipped!");
 					continue;
 				}
@@ -721,7 +686,7 @@ public class TemplateProcessor {
 				parameters.forEach((name, par) -> {
 					ps.add(par);
 				});
-				ArrayList<Param> sorted = sortParams(ps);
+				ArrayList<Param> sorted = Param.sortParams(ps);
 				sorted.forEach(par -> {
 					// fill in the code line with values of par
 					lines.add(fillInParam(paramLine, par));
@@ -734,7 +699,7 @@ public class TemplateProcessor {
 			// fill in the template
 			Param par = parameters.get(p);
 			if (null == par) {
-				System.err.println("Error: Unknown parameter : " + p + " : Parameter " +
+				Utilities.log("Error: Unknown parameter : " + p + " : Parameter " +
 								"skipped!");
 				continue;
 			}
@@ -770,17 +735,17 @@ public class TemplateProcessor {
 					Map<String, String> variables
 	) {
 		// find indentation used
-		String indent = findIndentation(line);
+		String indent = Utilities.findIndentation(line);
 		// find specified template in line
 		int tmp_start = index + 2;
 		if (tmp_start >= line.length()) {
-			System.err.println("Error: No template name specified for template " +
+			Utilities.log("Error: No template name specified for template " +
 							"command : " + line + " : Line ignored!");
 			return new CommandResult(1, null);
 		}
 		int tmp_end = line.indexOf(templateExtension, tmp_start);
 		if (tmp_end == -1) {
-			System.err.println("Error: Template extension missing for template " +
+			Utilities.log("Error: Template extension missing for template " +
 							"command : " + line + " : Line ignored!");
 			return new CommandResult(1, null);
 		} else {
@@ -837,7 +802,7 @@ public class TemplateProcessor {
 	) {
 		if (null != newLines && 0 == newLines.size()) {
 			// template was found but was empty, warn user
-			System.out.println("Warning: template " + param.name + "/" + template +
+			Utilities.log("Warning: template " + param.name + "/" + template +
 							" was empty!" +
 							" A comment line has been added in the output to indicate" +
 							" where the code for this template could be added.");
@@ -847,7 +812,7 @@ public class TemplateProcessor {
 			lines.addAll(newLines);
 		} else {
 			// template was not found, warn user and make blank template
-			System.out.println("Warning: the template " + param.name + "/" +
+			Utilities.log("Warning: the template " + param.name + "/" +
 							template + " was missing!" +
 							" A blank template has been created at this location\n" +
 							"A comment line has been added in the output to indicate" +
@@ -888,69 +853,6 @@ public class TemplateProcessor {
 		line = line.replace("p#defaultValue", param.defaultValue);
 		
 		return line;
-	}
-	
-	/**
-	 * Sorts a list of parameters based on their ids. Uses a simple top down
-	 * merge sort.
-	 * @param params
-	 *      List of parameters to sort.
-	 * @return
-	 *      Sorted list of parameters.
-	 */
-	private ArrayList<Param> sortParams(ArrayList<Param> params) {
-		if (null == params) {
-			return null;
-		}
-		int size = params.size();
-		if (1 >= size) {
-			return params;
-		}
-		
-		ArrayList<Param> left = new ArrayList<>();
-		ArrayList<Param> right = new ArrayList<>();
-		
-		for (int i = 0; i < size; i++) {
-			if (i < size/2) {
-				left.add(params.get(i));
-			} else {
-				right.add(params.get(i));
-			}
-		}
-		
-		ArrayList<Param> left_sort = sortParams(left);
-		ArrayList<Param> right_sort = sortParams(right);
-		
-		return mergeParams(left_sort, right_sort);
-	}
-	
-	/**
-	 * Merges two lists of parameters based on their ids.
-	 * @param left
-	 *      First list.
-	 * @param right
-	 *      Second List.
-	 * @return
-	 *      Merged result of the two lists.
-	 */
-	private ArrayList<Param> mergeParams(ArrayList<Param> left,
-	                                            ArrayList<Param> right) {
-		ArrayList<Param> res = new ArrayList<>();
-		
-		while (!left.isEmpty() && !right.isEmpty()) {
-			if (left.get(0).id <= right.get(0).id) {
-				res.add(left.remove(0));
-			} else {
-				res.add(right.remove(0));
-			}
-		}
-		while (!left.isEmpty()) {
-			res.add(left.remove(0));
-		}
-		while (!right.isEmpty()) {
-			res.add(right.remove(0));
-		}
-		return res;
 	}
 	
 	/**

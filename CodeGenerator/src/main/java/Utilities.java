@@ -1,9 +1,12 @@
 import java.io.*;
+import java.lang.reflect.Array;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -13,6 +16,7 @@ import org.json.JSONObject;
  * @author Erik
  */
 public class Utilities {
+	private static ArrayList<String> loglines = new ArrayList<>();
 	
 	/**
 	 * Attempts to read a specified file as a JSONObject
@@ -29,8 +33,8 @@ public class Utilities {
 			}
 			return new JSONObject(str);
 		} catch (JSONException e) {
-			System.out.println("Error reading JSON from file " + fileName + "!");
-			System.out.println(e.getMessage());
+			Utilities.log("Error reading JSON from file " + fileName + "!");
+			Utilities.log(e.getMessage());
 			return null;
 		}
 	}
@@ -89,7 +93,7 @@ public class Utilities {
 						}
 					}
 				} catch (NumberFormatException e) {
-					System.err.println("id value for parameter is not a number : " +
+					Utilities.log("id value for parameter is not a number : " +
 									id_str + "," + parts[1] + "," + parts[2] + "," + parts[3]);
 				}
 				
@@ -106,7 +110,7 @@ public class Utilities {
 		if (found_specified_id) {
 			System.out.print("Warning: auto increment enabled for parameter ids," +
 							" id values from " + fileName + " ignored!");
-			System.out.println(" Set id values to -1 in main .csv file to prevent " +
+			Utilities.log(" Set id values to -1 in main .csv file to prevent " +
 							"this warning.");
 		}
 		
@@ -125,7 +129,7 @@ public class Utilities {
 	 */
 	public static ArrayList<String> readLinesFromFile(String fileName) {
 		if (null == fileName) {
-			System.err.println("Error: File name for readLinesFromFile function was" +
+			Utilities.log("Error: File name for readLinesFromFile function was" +
 							" null!");
 			return null;
 		}
@@ -139,10 +143,10 @@ public class Utilities {
 			bufferedReader.lines().forEach(code::add);
 			return code;
 		} catch (FileNotFoundException e) {
-			System.err.println("File " + fileName + " not found!");
+			Utilities.log("File " + fileName + " not found!");
 			return null;
 		} catch (IOException e) {
-			System.err.println("Error reading from file " + fileName + "!");
+			Utilities.log("Error reading from file " + fileName + "!");
 			return null;
 		}
 	}
@@ -162,16 +166,20 @@ public class Utilities {
 		//TODO : make this return a boolean as indication for success
 		// Find the referenced location, check if should be overridden
 		Path filePath = Paths.get(fileName);
+		File f = filePath.toFile();
+		String absolutePath = f.getAbsolutePath();
+		filePath = Paths.get(absolutePath);
+		
 		if (Files.exists(filePath)) {
 			if (overwriteExisting) {
 				try {
 					Files.delete(filePath);
 				} catch (IOException e) {
-					System.err.println(
+					Utilities.log(
 									"Error: Unable to overwrite file : " + fileName + "!");
 				}
 			} else {
-				System.err.println("Warning: file " + fileName + " already exists and" +
+				Utilities.log("Warning: file " + fileName + " already exists and" +
 								" overwriting is disabled. This file was skipped!");
 				return;
 			}
@@ -183,7 +191,7 @@ public class Utilities {
 			try {
 				Files.createDirectories(parentDir);
 			} catch (IOException e) {
-				System.err.println("Error: Unable to create parent directories for " +
+				Utilities.log("Error: Unable to create parent directories for " +
 								fileName);
 			}
 		}
@@ -201,14 +209,14 @@ public class Utilities {
 					br.write(str);
 					br.newLine();
 				} catch (IOException e) {
-					System.err.println("Error: writing string" + str + "to " +
+					Utilities.log("Error: writing string" + str + "to " +
 									"file!");
 				}
 			});
 		} catch (FileNotFoundException e) {
-			System.err.println("File not found!");
+			Utilities.log("File not found!");
 		} catch (IOException e) {
-			System.err.println("Error writing to file!");
+			Utilities.log("Error writing to file!");
 		}
 	}
 	
@@ -226,7 +234,7 @@ public class Utilities {
 			return bufferedReaderToString(bufferedReader);
 		} catch (IOException e) {
 			// File can't be found, or an error occurs while reading the file.
-			System.err.println("Error reading from file " + fileName + "!");
+			Utilities.log("Error reading from file " + fileName + "!");
 			return null;
 		}
 	}
@@ -254,6 +262,39 @@ public class Utilities {
 		return sb.toString();
 	}
 	
+	/**
+	 * Returns an exact String copy of the leading whitespace used in the
+	 * specified line.
+	 * @param line
+	 *      Line of which leading whitespace should be found.
+	 * @return
+	 *      Leading whitespace of line.
+	 */
+	static String findIndentation(String line) {
+		// regex matching anything except whitespace
+		Pattern notWhiteSpace = Pattern.compile("\\S");
+		// first occurrence of regex
+		int indentationEnd = indexOf(notWhiteSpace, line);
+		// return part between string start and first non whitespace
+		return line.substring(0, indentationEnd);
+	}
+	
+	/**
+	 * Returns the index of the first occurrence of the pattern within the
+	 * specified String.
+	 *
+	 * @param pattern
+	 *      Pattern to look for.
+	 * @param str
+	 *      String to search.
+	 * @return
+	 *      Index of Pattern in String (first occurrence).
+	 */
+	static int indexOf(Pattern pattern, String str) {
+		Matcher matcher = pattern.matcher(str);
+		return matcher.find() ? matcher.start() : -1;
+	}
+	
 	public static void checkBraces(
 					ArrayList<String> code,
 					String fileName,
@@ -267,13 +308,13 @@ public class Utilities {
 			int lineBraces = countBraces(line);
 			braces += lineBraces;
 			if (braces < 0) {
-				System.err.println("Error: Extra closing bracket on line " + i + " of" +
+				Utilities.log("Error: Extra closing bracket on line " + i + " of" +
 								" code produced by " + templateFile + " for " + fileName + "!");
 				return;
 			}
 		}
 		if (braces > 0) {
-			System.err.println("Error: Missing closing bracket on line " + i + " of" +
+			Utilities.log("Error: Missing closing bracket on line " + i + " of" +
 							" code produced by " + templateFile + " for " + fileName + "!");
 		}
 	}
@@ -291,5 +332,14 @@ public class Utilities {
 			}
 		}
 		return braces;
+	}
+	
+	static void log(String logline) {
+		System.out.println(logline);
+		loglines.add(logline);
+	}
+	
+	static void printLog(String filename, boolean overwriteExisting) {
+		writeLinesToFile(loglines, filename, overwriteExisting);
 	}
 }

@@ -1,6 +1,9 @@
 import org.json.JSONArray;
 import org.json.JSONException;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 /**
  * Represents a parameter as a java object, includes the attributes:
  *  - id
@@ -27,7 +30,7 @@ public class Param {
 	 * @param dataType
 	 * @param defaultValue
 	 */
-	public Param(int id, String name, String dataType,
+	Param(int id, String name, String dataType,
 	             String defaultValue) {
 		this.id = id;
 		this.name = name;
@@ -44,7 +47,7 @@ public class Param {
 	 * @param dataType
 	 * @param defaultValue
 	 */
-	public Param(String id, String name, String dataType,
+	Param(String id, String name, String dataType,
 	             String defaultValue) {
 		try {
 			if (null == id) {
@@ -53,7 +56,7 @@ public class Param {
 				this.id = Integer.parseInt(id);
 			}
 		} catch (NumberFormatException e) {
-			System.err.println("Enum value for parameter is not a number : " +
+			Utilities.log("Enum value for parameter is not a number : " +
 							id + "," + name + "," + dataType + "," + defaultValue);
 		}
 		this.name = name;
@@ -68,7 +71,7 @@ public class Param {
 	 * @param par
 	 *      JSONArray to convert to parameter.
 	 */
-	public Param(JSONArray par) {
+	Param(JSONArray par) {
 		try {
 			this.id = par.getInt(0);
 			this.name = par.getString(1);
@@ -76,7 +79,7 @@ public class Param {
 			this.dataType = par.getString(2);
 			this.defaultValue = par.getString(3);
 		} catch (JSONException e) {
-			System.err.println(par.toString() + " : " + e.getMessage());
+			Utilities.log(par.toString() + " : " + e.getMessage());
 		}
 	}
 	
@@ -92,6 +95,69 @@ public class Param {
 		res += name + ",";
 		res += dataType + ",";
 		res += defaultValue;
+		return res;
+	}
+	
+	/**
+	 * Sorts a list of parameters based on their ids. Uses a simple top down
+	 * merge sort.
+	 * @param params
+	 *      List of parameters to sort.
+	 * @return
+	 *      Sorted list of parameters.
+	 */
+	static ArrayList<Param> sortParams(ArrayList<Param> params) {
+		if (null == params) {
+			return null;
+		}
+		int size = params.size();
+		if (1 >= size) {
+			return params;
+		}
+		
+		ArrayList<Param> left = new ArrayList<>();
+		ArrayList<Param> right = new ArrayList<>();
+		
+		for (int i = 0; i < size; i++) {
+			if (i < size/2) {
+				left.add(params.get(i));
+			} else {
+				right.add(params.get(i));
+			}
+		}
+		
+		ArrayList<Param> left_sort = sortParams(left);
+		ArrayList<Param> right_sort = sortParams(right);
+		
+		return mergeParams(left_sort, right_sort);
+	}
+	
+	/**
+	 * Merges two lists of parameters based on their ids.
+	 * @param left
+	 *      First list.
+	 * @param right
+	 *      Second List.
+	 * @return
+	 *      Merged result of the two lists.
+	 */
+	private static ArrayList<Param> mergeParams(ArrayList<Param> left,
+	                                     ArrayList<Param> right) {
+		ArrayList<Param> res = new ArrayList<>();
+		
+		while (!left.isEmpty() && !right.isEmpty()) {
+			if (left.get(0).id <= right.get(0).id) {
+				res.add(left.remove(0));
+			} else {
+				res.add(right.remove(0));
+			}
+		}
+		while (!left.isEmpty()) {
+			res.add(left.remove(0));
+		}
+		while (!right.isEmpty()) {
+			res.add(right.remove(0));
+		}
 		return res;
 	}
 }

@@ -20,18 +20,22 @@ public class Main {
 	private static String parameters_file = "params.csv";
 	// whether or not to overwrite existing files
 	private static boolean overwrite_existing = true;
-	private static boolean clear_folders = false;
+	private static boolean clear_directories = false;
 	// whether or not to keep indentation for sub-templates
 	private static boolean continue_indentation = true;
+	// logging
+	private static boolean logging = true;
 	// start point for autoincrement parameter ids;
 	private static int auto_increment_start_id = -1;
 	
 	// settings json file
 	private static JSONObject settings;
 	// main subsystem / directory name
-	private static String subSysName;
+	private static String subSysName = "generated_subsystem";
 	// subdirectories
 	private static ArrayList<String> subDirs = new ArrayList<>();
+	// file for logging
+	private static String logfile = "CodeGenerator.log";
 	// files to be generated and their base templates
 	private static Map<String, String> files = new HashMap<>();
 	// Map of all available parameters
@@ -53,71 +57,84 @@ public class Main {
 					"Code generator settings can be found in settings.json.\n" +
 					"Templates to use for generating files can be placed in the " +
 					"templates folder\n";
-		System.out.println(intro);
+		Utilities.log(intro);
 		
+		// load program settings
 		settings = Utilities.readJSONFromFile(SETTINGS_FILE);
-		
 		if (null == settings) {
 			return;
+		} else {
+			loadSettings();
 		}
-		
-		loadSettings();
 		
 		// Create map of all available parameters
-		params_list = Utilities.readParamCSV("params.csv", auto_increment_start_id);
+		params_list = Utilities.readParamCSV(parameters_file, auto_increment_start_id);
 		params_list.forEach(par -> params.put(par.name, par));
 		
-		
-		// find main directory from settings
-		subSysName = settings.getString("subsystem_name");
-		// find subdirectories from settings
-		JSONArray subdirectories = settings.getJSONArray("subdirectories");
-		for (Object folderName : subdirectories) {
-			if (folderName instanceof String) {
-				subDirs.add((String) folderName);
-			}
-		}
-		
 		// generate all required directories specified in settings
-		System.out.println("\nMaking required directories...");
+		Utilities.log("\nMaking required directories...");
 		makeDirs();
 		
-		// find files to generate from settings
-		// files in settings.json should be an object array = [{..},{..},...]
-		JSONArray sFiles = settings.getJSONArray("files_to_generate");
-		for (Object file : sFiles) {
-			if (file instanceof JSONObject) {
-				// if a base template was specified, use that template
-				if (((JSONObject) file).has("base_template")) {
-					files.put(((JSONObject) file).getString("filename"),
-									((JSONObject) file).getString("base_template"));
-				} else {
-					// use the filename to search for a base template
-					files.put(((JSONObject) file).getString("filename"),
-									((JSONObject) file).getString("filename") +
-													TEMPLATE_EXTENSION);
-				}
-			}
-		}
-		
+		// load subsystem parameters.
+		Utilities.log("\nLoading subsystem parameters...");
 		loadParams();
 		
 		// generate all required files specified in settings
-		System.out.println("Generating specified files...");
+		Utilities.log("Generating specified files...");
 		makeFiles();
 		
 		// Indicate ending for user.
 		String exit =
 					"\nSuccessfully finished generating " + subSysName + " Subsystem!\n" +
 					"Please do check the output files in ./" + subSysName +
-					" and take any possible warnings provided above into account";
-		System.out.println(exit);
+					" and take any possible warnings or errors above into account";
+		Utilities.log(exit);
+		
+		Utilities.log("A log file of the printed output above has been " +
+						"created as " + logfile);
+		
+		if (logging) {
+			Utilities.printLog(logfile, overwrite_existing);
+		}
 	}
 	
 	/**
 	 * Loads various settings from the loaded json settings file.
 	 */
 	private static void loadSettings() {
+		// find main directory from settings
+		subSysName = settings.getString("subsystem_name");
+		
+		// find subdirectories from settings
+		if (settings.has("subdirectories")) {
+			if (settings.get("subdirectories") instanceof JSONArray) {
+				JSONArray subdirectories = settings.getJSONArray("subdirectories");
+				for (Object folderName : subdirectories) {
+					if (folderName instanceof String) {
+						subDirs.add((String) folderName);
+					}
+				}
+			}
+		}
+		
+		// find files to generate from settings
+		// files in settings.json should be an object array = [{..},{..},...]
+		if (settings.has("files_to_generate")) {
+			JSONArray sFiles = settings.getJSONArray("files_to_generate");
+			for (Object file : sFiles) {
+				if (file instanceof JSONObject) {
+					JSONObject fileObj = (JSONObject) file;
+					// if a base template was specified, use that template
+					if (fileObj.has("base_template")) {
+						files.put(fileObj.getString("filename"), fileObj.getString("base_template"));
+					} else {
+						// use the filename to search for a base template
+						files.put(fileObj.getString("filename"), fileObj.getString("filename") + TEMPLATE_EXTENSION);
+					}
+				}
+			}
+		}
+		
 		// overwriting existing files
 		if (settings.has("overwrite_existing_files")) {
 			if (settings.get("overwrite_existing_files") instanceof Boolean) {
@@ -126,9 +143,9 @@ public class Main {
 		}
 		
 		// clear folders before generation
-		if (settings.has("clear_existing_folders")) {
-			if (settings.get("clear_existing_folders") instanceof Boolean) {
-				clear_folders = settings.getBoolean("clear_existing_folders");
+		if (settings.has("clear_existing_directories")) {
+			if (settings.get("clear_existing_directories") instanceof Boolean) {
+				clear_directories = settings.getBoolean("clear_existing_directories");
 			}
 		}
 		
@@ -152,12 +169,29 @@ public class Main {
 				auto_increment_start_id = settings.getInt("auto_increment_start_id");
 			}
 		}
+		
+		// logging enabled?
+		if (settings.has("logging")) {
+			if (settings.get("logging") instanceof Boolean) {
+				logging = settings.getBoolean("logging");
+			}
+		}
+		
+		// logfile specified?
+		if (settings.has("logfile")) {
+			if (settings.get("logfile") instanceof String) {
+				logfile = (String) settings.get("logfile");
+			}
+		}
 	}
 	
 	/**
 	 * Loads specified parameters per file from settings.json.
 	 */
 	private static void loadParams() {
+		if (!settings.has("files_to_generate")) {
+			return;
+		}
 		// find parameters to use for each file
 		JSONArray sFiles = settings.getJSONArray("files_to_generate");
 		for (Object file : sFiles) {
@@ -208,7 +242,7 @@ public class Main {
 	private static void makeDirs() {
 		Path SubsFolder = Paths.get("./" + subSysName);
 		
-		if (Files.exists(SubsFolder) && clear_folders) {
+		if (Files.exists(SubsFolder) && clear_directories) {
 			deleteDirectoryStream(SubsFolder);
 		}
 		
@@ -216,24 +250,25 @@ public class Main {
 		try {
 			Files.createDirectory(SubsFolder);
 		} catch(FileAlreadyExistsException e) {
-			System.err.println("Warning: The main directory " + subSysName + " already" +
+			Utilities.log("Warning: The main directory " + subSysName + " " +
+							"already" +
 							" exists!");
 		} catch (IOException e) {
-			System.err.println("Error: unable to create main directory " + subSysName + "!");
+			Utilities.log("Error: unable to create main directory " + subSysName + "!");
 		}
 		// Try to make the subdirectories
 		subDirs.forEach(dir -> {
 			Path subDir = Paths.get("./" + subSysName + "/" + dir);
-			if (Files.exists(subDir) && clear_folders) {
+			if (Files.exists(subDir) && clear_directories) {
 				deleteDirectoryStream(subDir);
 			}
 			try {
 				Files.createDirectory(subDir);
 			} catch(FileAlreadyExistsException e) {
-				System.err.println("Warning: The subdirectory " + dir + " already " +
+				Utilities.log("Warning: The subdirectory " + dir + " already " +
 								"exists!");
 			} catch (IOException e) {
-				System.err.println("Error: unable to create subdirectory " + dir + "!");
+				Utilities.log("Error: unable to create subdirectory " + dir + "!");
 			}
 		});
 	}
@@ -248,13 +283,13 @@ public class Main {
 		TemplateProcessor tProc = new TemplateProcessor(subSysName, TEMPLATE_DIR,
 						TEMPLATE_EXTENSION, continue_indentation, overwrite_existing);
 		files.forEach((fileName,baseTemplate) -> {
-			System.out.println("\nProcessing file : " + fileName);
+			Utilities.log("\nProcessing file : " + fileName);
 			Map<String, Param> pars = fileParams.get(fileName);
 			ArrayList<String> codeLines =
 							tProc.processTemplate(fileName, baseTemplate, pars);
 			Utilities.writeLinesToFile(
 							codeLines,
-							"./" + subSysName + "/" + fileName, overwrite_existing
+							subSysName + "/" + fileName, overwrite_existing
 			);
 		});
 	}
@@ -274,7 +309,7 @@ public class Main {
 					.map(Path::toFile)
 					.forEach(File::delete);
 		} catch (IOException e) {
-			System.out.println("Error deleting " + subSysName + " folder!");
+			Utilities.log("Error deleting " + subSysName + " folder!");
 		}
 	}
 }

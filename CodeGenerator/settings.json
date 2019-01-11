@@ -3,9 +3,11 @@
 	"subdirectories" : ["HAL"],
 	"parameters" : "params.csv",
 	"auto_increment_start_id" : 44,
-	"overwrite_existing_files" : true,
-	"clear_existing_folders" : false,
 	"continue_indentation" : true,
+	"overwrite_existing_files" : true,
+	"clear_existing_directories" : true,
+	"logging" : true,
+	"logfile" : "CodeGenerator.log",
 	"files_to_generate" : [
 		{
 			"filename" : "../satellite.h",
@@ -28,8 +30,8 @@
 			"filename" : "somefile",
 			"base_template" : "parameters.c.cgen_template",
 			"parameters" : [
-				testing_2,
-				testing_4
+				"testing_2",
+				"testing_4"
 			]
 		},
 		{
