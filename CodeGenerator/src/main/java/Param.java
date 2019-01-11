@@ -11,6 +11,7 @@ import java.util.HashMap;
  *  - enumName
  *  - dataType
  *  - defaultValue
+ *  - ldType
  *
  * Includes methods to construct a parameter object from various inputs, as
  * well as a toString implementation.
@@ -21,6 +22,8 @@ public class Param {
 	public String name;
 	public String dataType;
 	public String defaultValue;
+	public String dType;
+	public String hexId;
 	
 	/**
 	 * Constructor. Accepts an integer as id value.
@@ -37,6 +40,8 @@ public class Param {
 		this.enumName = name + "_param_id";
 		this.dataType = dataType;
 		this.defaultValue = defaultValue;
+		this.dType = convertToLongDataType(this.dataType);
+		this.hexId = Integer.toHexString(this.id);
 	}
 	
 	/**
@@ -63,6 +68,8 @@ public class Param {
 		this.enumName = name + "_param_id";
 		this.dataType = dataType;
 		this.defaultValue = defaultValue;
+		this.dType = convertToLongDataType(this.dataType);
+		this.hexId = Integer.toHexString(this.id);
 	}
 	
 	/**
@@ -78,6 +85,8 @@ public class Param {
 			this.enumName = name + "_param_id";
 			this.dataType = par.getString(2);
 			this.defaultValue = par.getString(3);
+			this.dType = convertToLongDataType(this.dataType);
+			this.hexId = Integer.toHexString(this.id);
 		} catch (JSONException e) {
 			Utilities.log(par.toString() + " : " + e.getMessage());
 		}
@@ -159,5 +168,23 @@ public class Param {
 			res.add(right.remove(0));
 		}
 		return res;
+	}
+	
+	/**
+	 * Converts the standard data type string to a longer name variant used for
+	 * XML control files.
+	 * @param dataType
+	 *      The regular data type that should be converted/
+	 * @return
+	 */
+	private String convertToLongDataType(String dataType) {
+		switch (dataType) {
+			case "uint16_t" :
+				return "short";
+			case "uint32_t" :
+				return "long";
+			default :
+				return "";
+		}
 	}
 }

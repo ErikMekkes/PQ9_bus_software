@@ -313,9 +313,25 @@ public class Utilities {
 				return;
 			}
 		}
-		if (braces > 0) {
-			Utilities.log("Error: Missing closing bracket on line " + i + " of" +
-							" code produced by " + templateFile + " for " + fileName + "!");
+	}
+	
+	public static void checkOpeningBraces(
+					ArrayList<String> code,
+					String fileName,
+					String templateFile
+	) {
+		int braces = 0;
+		int size = code.size() - 1;
+		int i;
+		for (i = size; i > 0; i--) {
+			String line = code.get(i);
+			int lineBraces = countBraces(line);
+			braces += lineBraces;
+			if (braces > 0) {
+				Utilities.log("Error: Unclosed bracket on line " + (i+1) + " of" +
+								" code produced by " + templateFile + " for " + fileName + "!");
+				return;
+			}
 		}
 	}
 	

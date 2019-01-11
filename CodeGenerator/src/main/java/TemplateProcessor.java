@@ -49,15 +49,12 @@ public class TemplateProcessor {
 	 *      A list of code lines generated from the specified template.
 	 */
 	public ArrayList<String> processTemplate(
-					String fileName,
 					String templateFile,
 					Map<String, Param> parameters) {
 		// Use empty initial set of variables
 		HashMap<String, String> vars = new HashMap<>();
 		vars.put("s#name", subSysName);
-		ArrayList<String> code = processTemplate(templateFile, parameters, vars);
-		Utilities.checkBraces(code, fileName, templateFile);
-		return code;
+		return processTemplate(templateFile, parameters, vars);
 	}
 	
 	/**
@@ -543,6 +540,8 @@ public class TemplateProcessor {
 		vars.put("p#enumName", param.enumName);
 		vars.put("p#dataType", param.dataType);
 		vars.put("p#defaultValue", param.defaultValue);
+		vars.put("p#dType", param.dType);
+		vars.put("p#hexId", param.hexId);
 	}
 	
 	private CommandResult pTemplateCmd(
@@ -851,6 +850,8 @@ public class TemplateProcessor {
 		line = line.replace("p#enumName", param.enumName);
 		line = line.replace("p#dataType", param.dataType);
 		line = line.replace("p#defaultValue", param.defaultValue);
+		line = line.replace("p#dType", param.dType);
+		line = line.replace("p#hexId", param.hexId);
 		
 		return line;
 	}
