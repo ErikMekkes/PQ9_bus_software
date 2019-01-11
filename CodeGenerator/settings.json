@@ -10,6 +10,10 @@
 	"logfile" : "CodeGenerator.log",
 	"files_to_generate" : [
 		{
+			"filename" : "../examples/variables",
+			"base_template" : "examples/variables.cgen_template"
+		},
+		{
 			"filename" : "../satellite.h",
 			"base_template" : "satellite.h.cgen_template"
 		},
