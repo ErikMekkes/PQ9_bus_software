@@ -14,6 +14,15 @@ public class TemplateProcessor {
 	private boolean continue_indentation;
 	private boolean overwrite_existing;
 	
+	/**
+	 * Constructs a template processor with the specified settings. Helps to
+	 * organize the program by moving all related functionality here.
+	 * @param subSysName
+	 * @param templateDir
+	 * @param templateExtension
+	 * @param continue_indentation
+	 * @param overwrite_existing
+	 */
 	public TemplateProcessor(
 					String subSysName,
 					String templateDir,
@@ -129,47 +138,10 @@ public class TemplateProcessor {
 		// remove comments beforehand just in case to prevent misinterpretation
 		removeTemplateComments(code);
 		
-		// check if templateFile specifies additional variables
-		parseVariables(templateFile, code, vars);
-		
-		// loop through code lines, replace all var keys with var values
-		fillInVariables(code, vars);
-		
 		// check for commands
-		parseCommands(code, parameters, vars);
+		parseCommands(code, templateFile, parameters, vars);
 		
 		return code;
-	}
-	
-	/**
-	 * Loops through the template to check for additional variable definitions.
-	 *
-	 * @param template
-	 *        Filename of template that is being checked.
-	 * @param code
-	 *        Contents of the template file.
-	 * @param variables
-	 *        Existing set of variables to add to.
-	 */
-	private void parseVariables(
-					String template,
-					ArrayList<String> code,
-					HashMap<String, String> variables
-	) {
-		// loop through lines of code
-		int lineNumber = -1;
-		int size = code.size() - 1;
-		while (lineNumber < size) {
-			lineNumber++;
-			// check if line is a variable definition
-			String line = code.get(lineNumber);
-			if (parseVariable(line, template, variables)) {
-				// remove line from output
-				code.remove(lineNumber);
-				size--;
-				lineNumber--;
-			}
-		}
 	}
 	
 	/**
@@ -177,74 +149,47 @@ public class TemplateProcessor {
 	 *
 	 * @param line
 	 *      Line to check.
-	 * @param template
+	 * @param templateFile
 	 *      Filename of template that is being checked.
 	 * @param variables
 	 *      Existing set of variables to add to.
 	 * @return
 	 *      Whether a variable definition was found.
 	 */
-	private boolean parseVariable(
+	private CommandResult parseVariableCmd(
 					String line,
-					String template,
+					String templateFile,
 					Map<String, String> variables
 	) {
-		// try to find $command$ section in provided line
-		if (null == line) {
-			Utilities.log("Error: Line to check for command was null!");
-			return false;
-		}
-		int c_start = line.indexOf('$');
-		if (-1 == c_start) {
-			// no starting $ found, not a command -> no additional action needed
-			return false;
+		int v_name_start = line.indexOf("\\{");
+		if (-1 == v_name_start) {
+			Utilities.log("Error: no starting \\{ found for variable name " +
+							"in line :" + line + " : Line ignored!");
+			return new CommandResult(1, null);
 		} else {
-			// need to parse what's in between $ characters...
-			c_start = c_start +1;
+			// need to parse what's in between \{ characters...
+			v_name_start = v_name_start +2;
 		}
-		int c_end = line.indexOf('$', c_start);
-		if (-1 == c_end) {
-			Utilities.log("Error: No end '$' found for command in line: " +
-							line + " : Line ignored!");
-			return true;
+		int v_name_end = line.indexOf("\\}");
+		if (-1 == v_name_end) {
+			Utilities.log("Error: no end \\} found for variable name in " +
+							"line :" + line + " : Line ignored!");
+			return new CommandResult(1, null);
 		}
-		
-		// found command in between $$ command identifiers -> execute command
-		String cmd = line.substring(c_start, c_end);
-		if (cmd.equals("var")) {
-			int v_name_start = line.indexOf("\\{");
-			if (-1 == v_name_start) {
-				// no starting '#', no name specified
-				Utilities.log("Error: no starting '#' found for variable name " +
-								"in line :" + line + " : Line ignored!");
-				return true;
+		String v_name = line.substring(v_name_start, v_name_end);
+		String v_value = line.substring(v_name_end + 3);
+		// if variable was already defined in parent template, warn user
+		if (variables.containsValue(v_name)) {
+			if (null == templateFile) {
+				Utilities.log("Warning: template overrides parent template variable " + v_name + " locally with value " + v_value);
 			} else {
-				// need to parse what's in between '#' characters...
-				v_name_start = v_name_start +1;
+				Utilities.log("Warning: template " + templateFile + " overrides parent template variable " + v_name + " locally with value " + v_value);
 			}
-			int v_name_end = line.indexOf("\\}");
-			if (-1 == v_name_end) {
-				Utilities.log("Error: no end '#' found for variable name in " +
-								"line :" + line + " : Line ignored!");
-				return true;
-			}
-			String v_name = line.substring(v_name_start, v_name_end);
-			String v_value = line.substring(v_name_end + 2);
-			// if variable was already defined in parent template, warn user
-			if (variables.containsKey(v_name)) {
-				if (null == template) {
-					Utilities.log("Warning: template overrides parent template variable " + v_name + " locally with value " + v_value);
-				} else {
-					Utilities.log("Warning: template " + template + " overrides parent template variable " + v_name + " locally with value " + v_value);
-				}
-			}
-			// store variable in map as key, value
-			variables.put(v_name, v_value);
-			// remove line afterwards
-			return true;
 		}
-		// was a different command, do not remove line afterwards
-		return false;
+		// store variable in map as key, value
+		variables.put(v_name, v_value);
+		// remove line afterwards
+		return new CommandResult(1, null);
 	}
 	
 	/**
@@ -281,6 +226,8 @@ public class TemplateProcessor {
 	 * action is taken, the line remains in the specified set of code.
 	 * @param template
 	 *      Template lines as a list of String objects.
+	 * @param templateFile
+	 *      The template filename that is currently being processed.
 	 * @param parameters
 	 *      Map of all parameters specified for this code section.
 	 * @param variables
@@ -288,6 +235,7 @@ public class TemplateProcessor {
 	 */
 	private void parseCommands(
 					ArrayList<String> template,
+					String templateFile,
 					Map<String, Param> parameters,
 					Map<String, String> variables
 	) {
@@ -296,8 +244,17 @@ public class TemplateProcessor {
 		int size = template.size() - 1;
 		while (lineNumber < size){
 			lineNumber++;
+			// fill in variables
+			String str = template.get(lineNumber);
+			// loop through vars, if str contains var key replace with var value
+			for (String key : variables.keySet()) {
+				String value = variables.get(key);
+				str = str.replace(key, value);
+			}
+			template.set(lineNumber, str);
+			
 			// check if line is a command
-			CommandResult res = parseCommand(template, lineNumber,
+			CommandResult res = parseCommand(template, lineNumber, templateFile,
 							parameters,	variables);
 			if (null != res) {
 				// remove specified number of lines
@@ -337,11 +294,12 @@ public class TemplateProcessor {
 	 * @return
 	 *      Set of code lines produced by the command in the specified line.
 	 *      Empty if no lines generated by the command in the specified line.
-	 *      Null if no command found in this line.
+	 *      null if no command found in this line.
 	 */
 	private CommandResult parseCommand(
 					ArrayList<String> template,
 					int lineNumber,
+					String templateFile,
 					Map<String, Param> parameters,
 					Map<String, String> variables
 	) {
@@ -369,6 +327,8 @@ public class TemplateProcessor {
 		// found command in between $$ command identifiers -> execute command
 		String cmd = line.substring(c_start, c_end);
 		switch (cmd) {
+			case "var" :
+				return parseVariableCmd(line, templateFile, variables);
 			case "p-template" :
 				return pTemplateCmd(line,lineNumber, parameters, variables);
 			case "p-line" :
@@ -385,6 +345,18 @@ public class TemplateProcessor {
 		}
 	}
 	
+	/**
+	 * Tries to find a parameter list in the specified line. Parameter lists
+	 * have the format [param_name_1|param_name_2|...] and are used for several
+	 * of the parameter commands.
+	 * @param line
+	 *      The line to search for a parameter list.
+	 * @param lineNumber
+	 *      The linenumber of the specified line, useful for warnings.
+	 * @return
+	 *      List of (assumed to be) parameter name strings if the line
+	 *      contained a list format. Returns null otherwise.
+	 */
 	private String[] findParamList(String line, int lineNumber) {
 		// find start of parameter list
 		int p_list_start = line.indexOf('[');
@@ -415,7 +387,7 @@ public class TemplateProcessor {
 	 * @param template
 	 *      Template the command was found in as list of Strings.
 	 * @param lineNumber
-	 *      Line number the command was found in.
+	 *      Line number the command was found in. Used for warnings
 	 * @param parameters
 	 *      Parameters that were specified for the template containing the
 	 *      command.
@@ -544,6 +516,24 @@ public class TemplateProcessor {
 		vars.put("p#hexId", param.hexId);
 	}
 	
+	/**
+	 * Handles a line containing a $p-template$ command. First tries to find
+	 * the required parameter list for which to process the template. Tries to
+	 * find and process the specified template once for each entry in the
+	 * parameter list.
+	 * @param line
+	 *      The line the command was found in.
+	 * @param lineNumber
+	 *      The number of the line the command was found in. Used for warnings.
+	 * @param parameters
+	 *      The parameters that were specified for the current template.
+	 * @param variables
+	 *      The variables that were specified for the current template.
+	 * @return
+	 *      Resulting code from attempting to process the template for each
+	 *      parameter in the command's parameter list, along with an indication
+	 *      that one line should be removed (the line containing the command).
+	 */
 	private CommandResult pTemplateCmd(
 					String line,
 					int lineNumber,
