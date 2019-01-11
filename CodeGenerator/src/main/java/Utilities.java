@@ -295,14 +295,26 @@ public class Utilities {
 		return matcher.find() ? matcher.start() : -1;
 	}
 	
+	/**
+	 * Checks for mismatch in number of opening / closing braces. WARNING :
+	 * does not check if they were used in the correct place, only reports a
+	 * mismatched number.
+	 * @param code
+	 *      Code to check for braces.
+	 * @param fileName
+	 *      FileName given to the code.
+	 * @param templateFile
+	 *      Template file used to generate the code.
+	 */
 	public static void checkBraces(
 					ArrayList<String> code,
 					String fileName,
 					String templateFile
 	) {
-		int braces = 0;
-		int size = code.size();
-		int i;
+		// top to bottom for closing brackets
+		int braces, size, i;
+		braces = 0;
+		size = code.size();
 		for (i = 0; i < size; i++) {
 			String line = code.get(i);
 			int lineBraces = countBraces(line);
@@ -310,19 +322,12 @@ public class Utilities {
 			if (braces < 0) {
 				Utilities.log("Error: Extra closing bracket on line " + i + " of" +
 								" code produced by " + templateFile + " for " + fileName + "!");
-				return;
+				break;
 			}
 		}
-	}
-	
-	public static void checkOpeningBraces(
-					ArrayList<String> code,
-					String fileName,
-					String templateFile
-	) {
-		int braces = 0;
-		int size = code.size() - 1;
-		int i;
+		// bottom to top for opening brackets
+		braces = 0;
+		size = code.size() - 1;
 		for (i = size; i > 0; i--) {
 			String line = code.get(i);
 			int lineBraces = countBraces(line);
@@ -330,11 +335,20 @@ public class Utilities {
 			if (braces > 0) {
 				Utilities.log("Error: Unclosed bracket on line " + (i+1) + " of" +
 								" code produced by " + templateFile + " for " + fileName + "!");
-				return;
+				break;
 			}
 		}
 	}
 	
+	/**
+	 * Compares the number of opening and closing braces on a specified line. 0
+	 * if matching, negative if too many closing braces, positive if too many
+	 * opening braces.
+	 * @param line
+	 *      Line to check braces on.
+	 * @return
+	 *      Difference in number of opening and closing braces on the line.
+	 */
 	private static int countBraces(String line) {
 		int braces = 0;
 		char[] chars = line.toCharArray();
@@ -350,11 +364,23 @@ public class Utilities {
 		return braces;
 	}
 	
+	/**
+	 * Prints out the specified string to the internal log and the stdout.
+	 * @param logline
+	 *        Line to print to the log / stdout
+	 */
 	static void log(String logline) {
 		System.out.println(logline);
 		loglines.add(logline);
 	}
 	
+	/**
+	 * Prints the entire internal log to the specified file.
+	 * @param filename
+	 *        File to print the log to.
+	 * @param overwriteExisting
+	 *        Whether the logfile should be overwritten if it already exists.
+	 */
 	static void printLog(String filename, boolean overwriteExisting) {
 		writeLinesToFile(loglines, filename, overwriteExisting);
 	}

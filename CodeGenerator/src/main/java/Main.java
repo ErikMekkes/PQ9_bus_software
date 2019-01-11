@@ -8,8 +8,6 @@ import java.util.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import javax.rmi.CORBA.Util;
-
 /**
  * Main program, starting point for executable jar file.
  */
@@ -290,7 +288,6 @@ public class Main {
 			ArrayList<String> codeLines =
 							tProc.processTemplate(baseTemplate, pars);
 			Utilities.checkBraces(codeLines, fileName, baseTemplate);
-			Utilities.checkOpeningBraces(codeLines, fileName, baseTemplate);
 			Utilities.writeLinesToFile(
 							codeLines,
 							subSysName + "/" + fileName, overwrite_existing
