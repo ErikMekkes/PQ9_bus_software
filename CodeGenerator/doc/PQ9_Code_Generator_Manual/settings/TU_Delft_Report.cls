@@ -87,4 +87,5 @@
 }
 
 \usepackage{color,soul}
+\usepackage{todonotes}
 \sethlcolor{backcolour}
