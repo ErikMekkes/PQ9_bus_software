@@ -583,13 +583,15 @@ public class TemplateProcessor {
 				});
 				ArrayList<Param> sorted = Param.sortParams(ps);
 				sorted.forEach(par -> {
+					// fill in parameters for template name if present
+					String temp = fillInParam(template, par);
 					// make local copy so parent variables aren't modified
 					HashMap<String, String> vars = new HashMap<>(variables);
 					// add param vars and process
 					addParamVariables(vars, par);
-					ArrayList<String> newLines = processTemplate(template, parameters,
+					ArrayList<String> newLines = processTemplate(temp, parameters,
 									vars);
-					checkParamTemplateResult(lines, newLines, template, par);
+					checkParamTemplateResult(lines, newLines, temp, par);
 				});
 				break;
 			}
@@ -604,13 +606,15 @@ public class TemplateProcessor {
 									"skipped!");
 					continue;
 				}
+				// fill in parameters for template name if present
+				String temp = fillInParam(template, par);
 				// make local copy so parent variables aren't modified
 				HashMap<String, String> vars = new HashMap<>(variables);
 				// add param vars and process
 				addParamVariables(vars, par);
-				ArrayList<String> newLines = processTemplate(template, parameters,
+				ArrayList<String> newLines = processTemplate(temp, parameters,
 								vars);
-				checkParamTemplateResult(lines, newLines, template, par);
+				checkParamTemplateResult(lines, newLines, temp, par);
 			}
 		}
 		if (continue_indentation) {
@@ -656,6 +660,8 @@ public class TemplateProcessor {
 					int lineNumber,
 					Map<String, Param> parameters
 	) {
+		// find indentation used
+		String indent = Utilities.findIndentation(line);
 		// find specified list of parameters
 		String[] params = findParamList(line, lineNumber);
 		// ignore if not found (user is warned)
@@ -667,9 +673,11 @@ public class TemplateProcessor {
 		String paramLine = line.substring(p_list_end + 2);
 		
 		ArrayList<String> lines = new ArrayList<>();
+		boolean foundAllKeyword = false;
 		// if keyword all is used in list -> fill line for all params
 		for (String p : params) {
 			if (p.equals("all")) {
+				foundAllKeyword = true;
 				// process parameter in order of id
 				ArrayList<Param> ps = new ArrayList<>();
 				parameters.forEach((name, par) -> {
@@ -680,19 +688,23 @@ public class TemplateProcessor {
 					// fill in the code line with values of par
 					lines.add(fillInParam(paramLine, par));
 				});
-				return new CommandResult(1, lines);
+				break;
 			}
 		}
-		// only fill line for specified parameters
-		for (String p : params) {
-			// fill in the template
-			Param par = parameters.get(p);
-			if (null == par) {
-				Utilities.log("Error: Unknown parameter : " + p + " : Parameter " +
-								"skipped!");
-				continue;
+		if (!foundAllKeyword) {
+			// only fill line for specified parameters
+			for (String p : params) {
+				// fill in the template
+				Param par = parameters.get(p);
+				if (null == par) {
+					Utilities.log("Error: Unknown parameter : " + p + " : Parameter " + "skipped!");
+					continue;
+				}
+				lines.add(fillInParam(paramLine, par));
 			}
-			lines.add(fillInParam(paramLine, par));
+		}
+		if (continue_indentation) {
+			addPrefix(lines, indent);
 		}
 		return new CommandResult(1, lines);
 	}
