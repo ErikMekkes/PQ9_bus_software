@@ -193,33 +193,6 @@ public class TemplateProcessor {
 	}
 	
 	/**
-	 * Loops through a specified set of code and replaces variables with their
-	 * specified values.
-	 *
-	 * @param code
-	 *      Code lines for which variables should be filled in.
-	 * @param variables
-	 *      Variables to fill in.
-	 */
-	private void fillInVariables(
-					ArrayList<String> code,
-					HashMap<String, String> variables
-	) {
-		int lineNumber = -1;
-		int size = code.size() - 1;
-		while (lineNumber < size){
-			lineNumber++;
-			String str = code.get(lineNumber);
-			// loop through vars, if str contains var key replace with var value
-			for (String key : variables.keySet()) {
-				String value = variables.get(key);
-				str = str.replace(key, value);
-			}
-			code.set(lineNumber, str);
-		}
-	}
-	
-	/**
 	 * Loops through the specified code lines and checks for commands. If a line
 	 * contains a command the command is executed and the line is replaced with
 	 * the result from the command. If a line does not contain a command no
@@ -266,10 +239,12 @@ public class TemplateProcessor {
 				if (null != res.added) {
 					template.addAll(lineNumber, res.added);
 					size += res.added.size();
-					lineNumber += res.added.size();
+					// check next line after what was added
+					lineNumber += res.added.size() - 1;
+				} else {
+					// specified lines removed, nothing added, recheck current line
+					lineNumber--;
 				}
-				lineNumber -= res.removed;
-				// specified lines removed, nothing added
 			}
 			// line was not a command, no action performed
 		}
