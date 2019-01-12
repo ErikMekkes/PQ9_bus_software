@@ -1,21 +1,25 @@
 {
 	"subsystem_name" : "ADCS",
 	"subdirectories" : ["HAL"],
-	"parameters" : "params.csv",
+	"parameters" : "adcs_params.csv",
 	"auto_increment_start_id" : -1,
 	"continue_indentation" : true,
 	"overwrite_existing_files" : true,
-	"clear_existing_directories" : false,
+	"clear_existing_directories" : true,
 	"logging" : true,
 	"logfile" : "CodeGenerator.log",
 	"files_to_generate" : [
 		{
-			"filename" : "../examples/variables",
-			"base_template" : "examples/variables.cgen_template"
+			"filename" : "parameters.c"
 		},
 		{
-			"filename" : "../examples/paramcommands",
-			"base_template" : "examples/paramcommands.cgen_template"
+			"filename" : "../satellite.h",
+			"base_template" : "satellite.h.cgen_template"
+		},
+		{
+			"filename" : "../EPS.xml",
+			"base_template" : "EPS.xml.cgen_template",
+			"parameters" : [[41,"MPPDigitalPot","uint16_t","0"]]
 		}
 	]
 }

@@ -1,10 +1,22 @@
-// MPPDigitalPot = parameter name
-<xtce:MetaCommand name="MPPDigitalPot">
+//< Template for an example EPS.xml section
+//<
+//< Might still require additional keywords to make it flexible enough
+//< p#dType currently only has uint16_t = short, uint32_t = long which may be wrong / insufficient
+//< p#longName might be useful for line 15
+//< not sure if line 16 and 20-24 are static or need keywords as well
+//< p#bitSize might be useful for line 34
+//<
+//< MPP = subsystem name, usually already specified in settings.json
+//< but can redefine s#name locally if required :
+$var$ \{s#name\} MPP
+//< MPPDigitalPot = parameter name
+$p-block$ [MPPDigitalPot] \{
+<xtce:MetaCommand name="p#name">
     <xtce:LongDescription>MPP Digital pot</xtce:LongDescription>
     <xtce:BaseMetaCommand metaCommandRef="/Delfi-PQ/PQ9">
         <xtce:ArgumentAssignmentList>
-            // MPP = subsystem name
-            <xtce:ArgumentAssignment argumentName="Destination" argumentValue="MPP"/>
+            //< s#name = subsystem name
+            <xtce:ArgumentAssignment argumentName="Destination" argumentValue="s#name"/>
             <xtce:ArgumentAssignment argumentName="Size" argumentValue="6"/>
             <xtce:ArgumentAssignment argumentName="Source" argumentValue="OBC"/>
             <xtce:ArgumentAssignment argumentName="Counter" argumentValue="0"/>
@@ -13,15 +25,16 @@
         </xtce:ArgumentAssignmentList>
     </xtce:BaseMetaCommand>
     <xtce:ArgumentList>
-        // value type corresponds with dataType but different naming --> make converter
-        <xtce:Argument name="value" argumentTypeRef="/Delfi-PQ/short"/>
+        //< p#dType = short (not sure if uint16_t is correct for short)
+        <xtce:Argument name="value" argumentTypeRef="/Delfi-PQ/p#dType"/>
     </xtce:ArgumentList>
-    // MPPDPOT = parameter name
-    <xtce:CommandContainer name="MPPDPOT">
+    //< p#name = MPPDigitalPot (original: MPPDPOT, not sure if difference matters)
+    <xtce:CommandContainer name="p#name">
         <xtce:EntryList>
-            // binaryValue = hex version of parameter id --> make hex converter
-            <xtce:FixedValueEntry binaryValue="41" sizeInBits="8"/>
+            //< p#id = 41 ? (uncertain, original : 41)
+            <xtce:FixedValueEntry binaryValue="p#id" sizeInBits="8"/>
             <xtce:ArgumentRefEntry argumentRef="value"/>
         </xtce:EntryList>
     </xtce:CommandContainer>
 </xtce:MetaCommand>
+\}

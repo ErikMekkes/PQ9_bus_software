@@ -1,6 +1,6 @@
-0,testing_2,uint16_t,0xCAFE
-1,testing_4,uint32_t,0xDEADBEEF
-2,SBSYS_sensor_loop,uint32_t,100000
+0,testing_2,uint16_t,1000
+1,testing_4,uint32_t,0xCAFE
+2,SBSYS_sensor_loop,uint32_t,60000
 3,adb_sensor_status,uint8_t,0xDEAD
 4,adb_int_temp,uint16_t,12
 5,adb_deb,uint16_t, 4000
