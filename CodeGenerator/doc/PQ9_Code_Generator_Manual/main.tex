@@ -26,6 +26,15 @@
 
 \pagenumbering{arabic}
 
+\chapter{About the Code Generator}
+The PQ9 Code Generator is a template system that is specifically written for generating PQ9 Subsystem software. The goal is to provide a program that makes the subsystem software accessible to those without in-depth understanding of either the PQ9 software structure or the subsystem specific hardware code by generating the code from templates and parameters. 
+
+\vsp The Code Generator comes with a custom template format, for which a number of commands and keywords have been defined to make the templates very versatile. The templates and Code Generator can be used for any application that benefits from templates and parameters. The generator is originally intended to use templates that produce code in the c programming language for use within the PQ9 system, but the Code Generator doesn't explicitly require this. Technically any text or code language should be accepted by the the code generator as a valid template, as long as the template contents don't conflict with the pre-defined template commands and keywords (See chapter \ref{wwtemp}).
+
+\vsp The intended use is to provide a standard code structure that is shared among hardware within the PQ9 system. This structure can be represented as a set of base templates for a PQ9 subsystem. Subsystem experts can then be asked to fill in the subsystem specific code sections of these templates for their subsystems. An extra burden is placed on the subsystem experts by further asking them to define their code in terms of subsystem parameters, for as much as such a request is possible. Thus producing a subsystem specific set of templates and parameters, which when run through the Code Generator produce fully functional subsystem software for the specified parameters.
+
+\vsp This could be used to work towards a standard for PQ9 software that is consistent across subsystems. It would also allow for simple modification of a subsystem's behaviour by changing subsystem parameters, without having to consider underlying code. Similarly, the base templates should make implementing hardware specific code sections easier to manage by not having to consider the overhead of the PQ9 software structure.
+
 \chapter{Quick Start Guide}
 
 \section{Where to get the Code Generator}
@@ -64,118 +73,389 @@ Have a contribution that you believe should be added to the original? Make a for
 Currently there is no service provided by the maintainers to share templates. Feel free to set one up if there is a demand.
 
 \chapter{Program Settings}
-- Unfinished -
+The program comes in the format of an executable jar file, which can be run directly from the desktop or command line on most operating systems. The program looks for a settings.json file in the same directory for instructions on what to generate. If a settings file isn't present, the program will print a warning and exit. The settings file uses the json format, an example settings file and an explanation of the entries is shown below in Listing \ref{c:settings}.
+
+\begin{lstlisting}[caption={settings.json},label={c:settings},language=Java]
+{
+	"subsystem_name" : "ADCS",
+	"subdirectories" : ["HAL"],
+	"parameters" : "params.csv",
+	"auto_increment_start_id" : 44,
+	"continue_indentation" : true,
+	"overwrite_existing_files" : true,
+	"clear_existing_directories" : false,
+	"logging" : true,
+	"logfile" : "CodeGenerator.log",
+	"files_to_generate" : [
+		{
+			"filename" : "parameters.c",
+			"base_template":"parameters.c.cgen_template"
+		},
+		{
+			"filename" : "parameters.h"
+		},
+		{
+		    "filename":"../satellite.h",
+		    "base_template":"satellite.h.cgen_template"
+	    }
+	]
+}
+\end{lstlisting}
+
+\paragraph{subsystem\_name} Default : generated\_subsystem. The name of the subsystem to be generated, used for the name of the output folder and available in templates with the s\#name keyword (\ref{s:sname}).
+
+\paragraph{subdirectories} Default : none. The desired sub-directories to create in the main output folder as a list of directory names, format : \lstinline{["directory_name_1", "directory_name_2", ...]}.
+
+Use an empty list if no sub-directories are required : \lstinline{[]}
+
+\paragraph{parameters} Default : params.csv. A comma seperated values (.csv) file describing the available parameters for this subsystem. If a different parameters file should be used it can be specified here. See Section \ref{s:csvexample} for an example params.csv file.
+
+\paragraph{auto\_increment\_start\_id} Default : disabled. It is possible to leave the parameter ids in the parameters file unspecified and instead specify a start value. If this option is specified the parameters in the .csv file will be assigned incrementing ids from this starting value corresponding to their order in the .csv file.
+
+Leave out this setting or set it's value to -1 to disable.
+
+\paragraph{continue\_indentation} Default : enabled. Specifies whether the program should automatically continue with the same level of indentation when inserting sub-templates.
+
+\paragraph{overwrite\_existing\_files} Default : enabled. Specifies what should happen if a file to be created by the code generator already exists. If enabled existing files will be overwritten.
+
+\paragraph{clear\_existing\_directories} Default : disabled. Instructs the program to clear the contents from the specified subsystem output directory under subsystem\_name if the directory already exists.
+
+WARNING : this deletes all files within the specified directory, this is not reversible!
+
+\paragraph{logging} Default : enabled. Specifies whether a logfile should be created of the program's progress and warnings / errors.
+\paragraph{logfile} Default : CodeGenerator.log. Specifies where the logfile should be created
+
+\paragraph{files\_to\_generate} Default : none. Specifies the list ([ ... , ...]) of files to generate. Each file should be listed as a JSONObjects (\{ ... , ...\}), and should at least specify a filename.
+
+\vsp The available attributes for file JSONObjects are :
+\begin{itemize}
+    \item filename : The name for the output file, can be a relative path such as "../filename" or "HAL/filename".
+    \item base\_template : The base template for the file, should have the .cgen\_template extension. If not specified the generator looks for 'filename.cgen\_template'.
+    \item parameters : Allows a subset of the parameter csv file to be specified for this file. Useful when frequently making use of the 'all' keyword (See Section \ref{p-commands}). Format is a list of parameter names : \lstinline{[name\_1, name\_2, ...]}.
+\end{itemize}
+
+
+
 
 \chapter{Specifying parameters}
+One of the main objectives of the code generator is to make it easy to modify a sub-system's code by only having to change the parameters that were defined for it. In order to do so the desired code is generated from a set of templates containing the desired subsystem code in terms of subsystem parameters, and an external comma separated values file that specifies these parameters. This chapter briefly covers the accepted format for the .csv file using an example antenna deployment board's (ADB) parameters.
 
-\chapter{Working with templates}
-The program builds the desired subsystem code from a specified set of templates and parameters as described in the previous chapters. The templates can contain anything, as long as they are files with the .cgen\_template extension. This chapter explains the available options within templates, which come in two variants: keywords and commands.
+\section{Example params.csv file for an ADB subsystem} \label{s:csvexample}
+\begin{lstlisting}0,testing_2,uint16_t,1000
+1,testing_4,uint32_t,0xCAFE
+2,SBSYS_sensor_loop,uint32_t,60000
+3,adb_sensor_status,uint8_t,0xDEAD
+4,adb_int_temp,uint16_t,12
+5,adb_deb,uint16_t, 4000
+6,SBSYS_reset_clr_int_wdg,uint32_t,8000
+7,SBSYS_reset_cmd_int_wdg,uint16_t,600
+\end{lstlisting}
+
+Each row represents a parameter and contains the following entries :
+\begin{itemize}
+    \item id : the number id of the parameter (should be unique within the PQ9 system)
+    \item name : the name of the parameter (should be unique within the PQ9 system)
+    \item datatype : the data type of the parameter (c programming language)
+    \item default value : the default value for the parameter (matching datatype)
+\end{itemize}
+
+\vsp The number can be left unspecified as -1 if auto-incrementing is enabled in the program settings. The numbers will be automatically assigned starting from the specified starting number. The program will print out warnings if auto-incrementing is enabled and ids aren't left unspecified as -1 to prevent unintended ids.
+
+
+
+
+
+\chapter{Working with templates}\label{wwtemp}
+The program builds the desired subsystem code from a specified set of templates and parameters as described in the previous chapters. The templates should form a code framework that generates the actual desired code based on the parameters. This means that creating subsystem templates will require expertise with the PQ9 software architecture and the subsystem hardware.
+
+Though intended for the PQ9 architecture, the templates can contain anything, as long as they are files with the .cgen\_template extension. This chapter explains the available options within templates, which come in two variants: keywords and commands.
 
 \section{Template Keywords}
 Keywords are pre-defined words that are recognized by the program. This section lists the keywords that can be used within templates. Just like keywords from programming languages these keywords can not be used for anything other than their pre-defined purpose, the code generator cannot distinguish between other intended uses, so will always interpret them with these pre-defined meanings.
 
 None of the template keywords are valid c-code, they will not compile, and the characters used in them generally aren't used in such a way to produce valid code for programming languages. The template keywords have been chosen in such a way to make it extremely unlikely for them to be mistakenly used for anything other than their intended purpose.
 
-\subsection{Parameter Properties} \label{par-keywords}
-These keywords are pre-defined to represent parameter properties, they are replaced with the corresponding value's if a specific parameter is passed during the code generation process (see \ref{p-template} and \ref{p-line}). They \textbf{can not} be used for any other purpose in a template.
-\begin{itemize}
-    \item p\#name : The name of the parameter
-    \addcontentsline{toc}{subsection}{p\#name}
-    \item p\#id : The integer id enum value used to indentify the parameter.
-    \addcontentsline{toc}{subsection}{p\#id}
-    \item p\#enumName : The name used to identify the enum value of the parameter.
-    \addcontentsline{toc}{subsection}{p\#enumName}
-    \item p\#dataType : The data type of the parameter.
-    \addcontentsline{toc}{subsection}{p\#dataType}
-    \item p\#defaultValue : The default value of the parameter.
-    \addcontentsline{toc}{subsection}{p\#defaultValue}
-\end{itemize}
+\subsection{Subsystem Name} \label{s:sname}
+The s\#name keyword can be used to substitute the subsystem name in templates. The value is taken from the subsystem name specified in the settings file.
 
-\section{Template commands}
-Commands are pre-defined line formats that instruct the program to do something. They are identified by the surrounding dollar \$ signs.
-
-\subsection{\$var\$}
-This command is used to define a template variable for the current template, the format is as follows:
+\vsp Example, if the subsystem name was specified as \Colorbox{backcolour}{\lstinline{ADCS}}: 
 \begin{lstlisting}
- $var$ #variable_name# variable_value
+    s#name_sensor_value = 0;
+\end{lstlisting}
+will generate as output:
+\begin{lstlisting}
+    ADCS_sensor_value = 0;
 \end{lstlisting}
 
-The effect is very straightforward, every instance of variable\_name in the template is replaced with variable\_value. The replacement proceeds from the beginning of the template to the end, for example, replacing "aa" with "b" in the string "aaa" will result in "ba" rather than "ab".\\
+\subsection{Parameter Properties} \label{par-keywords}
+These keywords are pre-defined to represent parameter properties, they are replaced with the corresponding values of specified parameter(s) during the code generation process (see \ref{p-commands}).
+\begin{itemize}
+    \item p\#name : The name of the parameter
+    \item p\#id : The integer id enum value used to indentify the parameter.
+    \item p\#enumName : The name used to identify the enum value of the parameter. Equal to the string 'p\#name\_param\_id'. 
+    \item p\#dataType : The data type of the parameter.
+    \item p\#defaultValue : The default value of the parameter.
+    \item p\#hexId : hexadecimal representation of the id. (for XML templates)
+    \item p\#dType : alternative data type name format (short, long, ...). (for XML templates)
+\end{itemize}
 
-Anything before the command identifier is ignored, so type and amount of leading whitespace can be freely chosen. The \Colorbox{backcolour}{\lstinline{$var$}} command identifier is fixed.\\
+\newpage
+\section{Generic Commands}
+Commands are pre-defined line formats that instruct the program to do something. They are identified by the surrounding dollar \$ signs.
 
-Anything between the first two \# characters following the \Colorbox{backcolour}{\lstinline{$var$}} command is taken as the variable name, so anything that does not include a \# is a valid variable name. Everything between the last \$ of the command and the first \# of the variable name is ignored. For example \Colorbox{backcolour}{\lstinline{foo_var}} is a valid variable name, but so is \Colorbox{backcolour}{\lstinline{this gets replaced by the value}} or \Colorbox{backcolour}{\lstinline{5}}.\\
+\subsection{Variables}
+The \Colorbox{backcolour}{\lstinline{$var$}} command is used to define a template variable for the current template, the format is as follows:
+\begin{lstlisting}
+ $var$ \{variable_name\} variable_value
+\end{lstlisting}
 
-The variable name must be followed by a single space character, anything following this single space character is accepted as a value for the variable, as long as it is on the same line. For example \lstinline{4} is an accepted value, but so is \Colorbox{backcolour}{\lstinline{*((uint32_t*)value)}} or \Colorbox{backcolour}{\lstinline{I actually want to replace foo_var}} \Colorbox{backcolour}{\lstinline{with this entire sentence}}.\\
+\vsp The effect is very straightforward, every instance of variable\_name in the template is replaced with variable\_value. The replacement proceeds from the beginning of the template to the end, for example, replacing "aa" with "b" in the string "aaa" will result in "ba" rather than "ab".
 
-Using variable names within a variable value is possible, for example if \Colorbox{backcolour}{\lstinline{foo}} and \Colorbox{backcolour}{\lstinline{bar}} are defined as variables, \Colorbox{backcolour}{\lstinline{I am foo my value is bar}} is accepted as a value for foo. Using the name of a variable in it's value is allowed like above, but it will not be replaced to prevent infinite loops. In the above example, foo would be replaced with \Colorbox{backcolour}{\lstinline{I am foo my value is x}} if bar's value was defined as 'x'. Likewise, replacement of variables within variable value is only performed once, corresponding with the order in which the variables are defined within the template.
+\vsp Anything before the command identifier is ignored, so type and amount of leading whitespace can be freely chosen.
 
-\subsection{\$template\$}
-This command is used to include another template in the current template, the format is as follows:
+\vsp Anything between the escaped braces following the \Colorbox{backcolour}{\lstinline{$var$}} command is taken as the variable name, so anything except escaped braces is a valid variable name. For example \Colorbox{backcolour}{\lstinline{foo_var}} is a valid variable name, but so is the string \Colorbox{backcolour}{\lstinline{this gets replaced by the value}} or just the number  \Colorbox{backcolour}{\lstinline{5}}.
+
+\vsp The variable name must be followed by a single space character, anything following this single space character is accepted as a value for the variable, as long as it is on the same line. For example the word \Colorbox{backcolour}{\lstinline{bar}} or the number \Colorbox{backcolour}{\lstinline{4}} is an accepted value, but so is \Colorbox{backcolour}{\lstinline{*((uint32_t*)value)}} or \Colorbox{backcolour}{\lstinline{I actually want to replace foo_var with this entire sentence}}.
+
+\vsp Variables only affect the remainder of the template after their definition. For a full example of the effect and possible uses, see example \ref{ex1}.
+
+\subsection{Subtemplates}
+The \Colorbox{backcolour}{\lstinline{$template$}} command is used to include another template in the current template, the format is as follows:
 \begin{lstlisting}
  $template$ template_filename
 \end{lstlisting}
 
-The specified template file will be processed as a sub-template, and this command line will be replaced with the output from that sub-template. The existing variables and parameters specified for the current template are passed along to the sub-template. New template variables defined in the sub-template will only be available locally within that sub-template.\\
+The specified template file will be processed as a sub-template, and this command line will be replaced with the output from that sub-template. The existing variables and parameters specified for the current template are passed along to the sub-template. New template variables defined in the sub-template will only be available locally within the scope of that sub-template.\\
 
 It is possible to redefine existing variables in a sub-template with a different value, the re-defined value will only apply within the scope of the sub-template. The code generator displays a warning when values from parent templates are redefined in sub-templates to prevent accidental re-use of variable names.
 
 Template processing is performed recursively, sub-templates may again contain commands and thus may define further sub-templates and so on.
 
-\subsection{\$p-template\$} \label{p-template}
-This command can be used to include a sub-template for a specified set of parameters. The sub-template's lines are included multiple times, once for each specified parameter, replacing this command line. For each evaluation of the sub-template, the respective parameter's values are filled in for parameter keywords (see \ref{par-keywords}). The format is as follows:
-\begin{lstlisting}
- $p-template$ array_of_parameters template_filename
-\end{lstlisting}
-The accepted format for the parameter array is:
-\begin{lstlisting}
- [param_name_1|param_name_2|param_name_3|...]
-\end{lstlisting}
-The keyword \lstinline{all} is an accepted parameter name for this array, which results in processing the template for each of the parameters specified for the parent template.
+\newpage
+\section{Parameter Processing Commands} \label{p-commands}
+These commands can be used to process a template section for a specified set of parameters. Along with the command itself a list of parameters is specified, the command is executed once for each parameter in that list. 
 
-The parameter names used in parameter\_array must be a subset of the available parameters for the output file as specified for the top level base template in settings.json.
-
-Template processing is performed recursively, sub-templates may again contain commands and thus may define further sub-templates and so on. This includes the ability to specify new \$p-template\$ and \$p-line\$ commands for parameters while the parent template is being processed for a certain parameter.
-
-\subsection{\$p-line\$} \label{p-line}
-This command can be used within templates to include a line for a specified set of parameters. The line is included multiple times, once for each specified parameter. This command is the single line equivalent of \Colorbox{backcolour}{\lstinline{$p-template$}}. Anything beyond the specified parameter array is considered part of the line to include. The parameter's values are filled in for any parameter keywords in this line. The format is as follows:
-\begin{lstlisting}
- $p-line$ array_of_parameters code_line
-\end{lstlisting}
-The accepted format for the parameter array is:
+\vsp The accepted format for this parameter list is :
 \begin{lstlisting}
  [param_name_1|param_name_2|param_name_3|...]
 \end{lstlisting}
-The keyword \lstinline{all} is an accepted parameter name for this array, which results in processing the line for each of the parameters specified for the parent template.\\
 
-The parameter names used in parameter\_array must be a subset of the available parameters for the output file as specified for the top level base template in settings.json.
+The parameter names used in this list should be a subset of the available parameters specified for this template in the settings. The program will display a warning on execution if a parameter was not recognized.
 
-There are no format restrictions for the code\_line input, any remaining characters on the current line are included, the only requirement is that it is separated from array\_of\_parameters by a single space character. Examples of valid code\_line input arguments:
+Additionally, the keyword \Colorbox{backcolour}{\lstinline{all}} is supported as a valid list entry. When used the command will be executed for all parameters that were specified for this template in the settings.
+
+\subsection{Templates} \label{p-template}
+The \Colorbox{backcolour}{\lstinline{$p-template$}} command can be used to include a sub-template once for each parameter in the specified parameter list. For each evaluation of the command, the corresponding parameter's values are filled in for parameter keywords (see \ref{par-keywords}). The format is as follows:
 \begin{lstlisting}
- p#dataType p#name = p#defaultValue;
+ $p-template$ list_of_parameters template_filename
 \end{lstlisting}
 
+Template processing is performed recursively, sub-templates may again contain commands and thus may define further sub-templates and so on. This includes the ability to specify new parameter commands while the parent template is being processed for a certain parameter.
+
+\subsection{Blocks} \label{p-block}
+The \Colorbox{backcolour}{\lstinline{$p-block$}} command can be used to include a block of code once for each parameter in the specified parameter list. It is similar to \Colorbox{backcolour}{\lstinline{$p-template$}}, but without the need for other template files. For each evaluation of the command, the corresponding parameter's values are filled in for parameter keywords (see \ref{par-keywords}). Anything between the escaped braces is considered part of the block of code to include. It is assumed that the escaped closing brace is on it's own line, use \Colorbox{backcolour}{\lstinline{$p-line$}} (\ref{p-line}) instead for shorter inclusions.
 \begin{lstlisting}
- // I want to comment about the keywords p#id, p#name and p#enumValue
+ $p-block$ list_of_parameters \{ 
+    code goes here;
+ \}
 \end{lstlisting}
+
+There are no format restrictions for the code\_line input, any remaining characters on the current line are included, the only requirement is that it is separated from list\_of\_parameters by a single space character.
+
+\subsection{Lines} \label{p-line}
+The \Colorbox{backcolour}{\lstinline{$p-line$}} command can be used to include a line once for each parameter in the specified parameter list. For each evaluation of the command, the corresponding parameter's values are filled in for parameter keywords (see \ref{par-keywords}). This command is the single line equivalent of \Colorbox{backcolour}{\lstinline{$p-template$}}. Anything after the specified parameter list is considered part of the line to include. The format is as follows:
+\begin{lstlisting}
+ $p-line$ list_of_parameters code line goes here;
+\end{lstlisting}
+
+There are no format restrictions for the code line, any remaining characters on the command's line are included, the only requirement is that it is separated from list\_of\_parameters by a single space character.
 
 \chapter{Program Structure}
+The program is written in java and consists of five java classes: Main, TemplateProcessor, CommandResult, Param and Utilities. With the java language and the included maven project setup, the program should be portable and modifiable across different operating systems and IDE's. The maven setup includes a build configuration that produces the executable jar file, which can be run directly from the desktop or command line.
 
+\vsp The Main class handles the loading of the settings file and creates the required directories. It matches up the parameters and base-template for each file specified in the settings and begins creating the files by starting the template processor on each base-template.
+
+\vsp The TemplateProcessor handles all the instructions in the base template. In order to do so the TemplateProcessor keeps a set of known of parameters and variables for the current template. It walks through the template line by line, filling in the variable values known up till then in the current line and checking if the line contains a command. If a line contains a command, the command is executed and the line is replaced with the result of the command. If there was no command the line (with filled in variables) is simply copied to the output.
+
+A template may specify sub-templates, in this case the processing described above is repeated for the sub-template, but with the known parameters and variables from the current template passed on.
+
+Some commands may instruct the processor to include a section of the template multiple times, once for a specific parameter. In this case the parameter's attributes are loaded as variables, and the section is processed as if it were a sub-template, but with the added parameter variables.
+
+Most commands require one or more lines to be removed beforehand, so a result of a command is represented as a set of new lines and a number of lines to remove with the CommandResult class. Once all the template lines have been processed like this the output is a set of newly generated code, which is sent back to the Main class to be stored in the right output file.
+
+\vsp Finally the main class does some basic verification by checking that all braces (\{ and \}) match up in the generated code. If there is a mismatch the program prints a warning for the user with a line number for the mismatch.
+
+\vsp The program uses the Param class as an internal way to represent the parameters specified in the settings file. This class combines all the parameter attributes into an object, which makes it easy to match parameters with certain files or pass them around to various functions. Besides various ways to interpret and output parameters it also includes a simple sorting algorithm for a list of parameters.
+
+\vsp The Utility class provides some generic functions that are used by the other classes, such as reading and writing to files in various formats. It also includes functions to find specific line parts such as indentation, as well as a method of counting start / end indicators such as braces to ensure they match up.
 
 % start of appendices, continuing with arabic page-numbers, using letters for chapter-numbering
 \begin{appendices}
-\chapter{Example Templates}
-\section{Variables and SubTemplates}
-\subsection{Base Template}
-\subsection{Sub Template 1}
-\subsection{Sub Template 2}
-\subsection{Generated Output}
+\chapter{Template Examples}
+\section{Variables and Sub-Templates} \label{ex1}
+\begin{lstlisting}[caption={base template : variables},label={ex1:variables},language={}]
+//< This template demonstrates the use of template variables
+//< run the program and check the output in examples/variables
+//<
+//< we define two variables, foo and bar
+$var$ \{foo\} 10
+$var$ \{bar\} monkey
+//<
+//< we use the variables here (see the s?)
+I saw foo bars
 
-\section{Filling In Parameter Values}
+//< variables only take effect after they are defined!
+I dont see something
+$var$ \{something\} bananas
+I do see something!
 
-\section{ADB Subsystem : parameters.c}
+// now let's see what happens with a subtemplate (see the indentation?)
+	$template$ examples/monkeymadness.cgen_template
 
-\subsection{Generated Output}
+// and let's check again afterwards in the main template
+I still see foo bars
+\end{lstlisting}
+
+\begin{lstlisting}[caption={sub-template : monkeymadness},label={ex1:mmadness},language={}]
+// this is the subtemplate
+
+// the variables from the parent are still known!
+I still see foo bars
+
+// but we can redefine them locally!
+$var$ \{bar\} chimpanzee
+But I now see foo bars
+
+// or even use them as part of new variable names!
+$var$ \{bar madness\} confusing
+Is this chimpanzee madness?
+\end{lstlisting}
+
+\newpage
+\begin{lstlisting}[caption={result},label={ex1:result},language={}]
+I saw 10 monkeys
+
+I dont see something
+I do see bananas!
+
+// now let's see what happens with a subtemplate (see the indentation?)
+	// this is the subtemplate
+	
+	// the variables from the parent are still known!
+	I still see 10 monkeys
+	
+	// but we can redefine them locally!
+	But I now see 10 chimpanzees
+	
+	// or even use them as part of new variable names!
+	Is this confusing?
+
+// and let's check again afterwards in the main template
+I still see 10 monkeys
+
+\end{lstlisting}
+
+Check the console output or the logfile and you'll also notice a warning about the redefinition of the bar value in the sub-template. The program includes many warnings for possibly unintentional scenarios like these.
+
+\noindent Assuming the \lstinline{variables.cgen_template} and \lstinline{monkeymadness.cgen_template} from this example are in \lstinline{./templates/examples/} relative to the folder the executable jar file is in, this is how this example would be specified in settings.json. The code generator by default places output files in \lstinline{./subsystem_name/}, so this would instead create the 'variables' output file in the \lstinline{./examples/} directory.
+
+\begin{lstlisting}[caption={specifying this example in settings.json}, language = {}]
+		{
+			"filename" : "../examples/variables",
+			"base_template" : "examples/variables.cgen_template"
+		},
+\end{lstlisting}
+
+\newpage
+\section{Parameter Processing Commands}
+\begin{lstlisting}[caption={parameter commands example}, language = {}]
+//< This template demonstrates the use of parameter commands
+//< run the program and check the output in examples/paramcommands
+#include <stdio.h>
+
+//< First example: initialising all parameters to default value
+void initialize() {
+	//< p-line : note how often this line is included!
+	//< once for each specified parameter!
+	$p-line$ [all] p#name = p#defaultValue;
+}
+
+//< Second example: reset only the 2 specified parameters
+void reset_sensors() {
+	$p-line$ [sensor_1|sensor_2] p#name = p#defaultValue;
+}
+
+//< Third example: use p-block for multiple lines!
+void print_parameter() {
+	//< additionally, lets throw in a variable!
+	$var$ \{printfunction\} printf
+	//< p-block: includes the block once for each parameter!
+	$p-block$ [testing_2|testing_4] \{
+		// This is easier than typing lots of p-lines!
+		printfunction("%u", p#name);
+	\}
+}
+
+//< final example: use p-template for very large sections
+//< or use it to organise smaller sections
+void set_parameter() {
+	//< we could use the same template for each parameter with :
+	//< $p-template$ [all] sometemplate.cgen_template
+	//< but we can also use a parameter variables here!
+	$p-template$ [all] p#name/set_parameter.cgen_template
+	//< note the different template files used for each
+	//< and what happens if the file was missing or empty?
+	//< (check the logfile / command line output!)
+}
+\end{lstlisting}
+
+\begin{lstlisting}[caption={parameter commands example}, language = {}]
+// this is the set template for sensor_1
+p#name = 500;
+\end{lstlisting}
+
+\begin{lstlisting}[caption={parameter commands example}, language = {}]
+// this is the set template for sensor_2
+p#name = 1337;
+\end{lstlisting}
+
+\noindent The template for testing\_2's setter \lstinline{testing_2/set_parameter.cgen_template} was left empty. The template for testing\_4's setter \lstinline{testing_4/set_parameter.cgen_template} didn't exist.
+
+\begin{lstlisting}[caption={result}, language = {}]
+#include <stdio.h>
+
+void initialize() {
+	testing_2 = 1000;
+	testing_4 = 0xCAFE;
+	sensor_1 = 0;
+	sensor_2 = 100;
+}
+
+void reset_sensors() {
+	sensor_1 = 0;
+	sensor_2 = 100;
+}
+
+void print_parameter() {
+		// This is easier than typing lots of p-lines!
+		printf("%u", testing_2);
+		// This is easier than typing lots of p-lines!
+		printf("%u", testing_4);
+}
+
+void set_parameter() {
+	// Add testing_2 code section here!
+	// Add testing_4 code section here!
+	// this is the set template for sensor_1
+	sensor_1 = 500;
+	// this is the set template for sensor_2
+	sensor_2 = 1337;
+}
+
+\end{lstlisting}
+
+\noindent As can be seen in the example, the p-template command adds a reminder in the output if the template was missing or empty. If the specified template didn't exist, an empty template is automatically created for it as well. This makes it easier to use p-templates to keep large template systems organized, and can be a helpful reminder for future work.
+
 \end{appendices}
 
 % automatically generate bibliography from all cited sources

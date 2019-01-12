@@ -1,0 +1,12 @@
+// this is the subtemplate
+
+// the variables from the parent are still known!
+I still see foo bars
+
+// but we can redefine them locally!
+$var$ \{bar\} chimpanzee
+But I now see foo bars
+
+// or even use them as part of new variable names!
+$var$ \{bar madness\} confusing
+Is this chimpanzee madness?
