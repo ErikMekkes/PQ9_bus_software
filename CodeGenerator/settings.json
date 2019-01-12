@@ -1,38 +1,21 @@
 {
-	"subsystem_name" : "ADB",
+	"subsystem_name" : "ADCS",
 	"subdirectories" : ["HAL"],
 	"parameters" : "params.csv",
-	"auto_increment_start_id" : 44,
-	"overwrite_existing_files" : true,
+	"auto_increment_start_id" : -1,
 	"continue_indentation" : true,
+	"overwrite_existing_files" : true,
+	"clear_existing_directories" : false,
+	"logging" : true,
+	"logfile" : "CodeGenerator.log",
 	"files_to_generate" : [
 		{
-			"filename" : "../satellite.h",
-			"base_template" : "satellite.h.cgen_template"
+			"filename" : "../examples/variables",
+			"base_template" : "examples/variables.cgen_template"
 		},
 		{
-			"filename" : "../satellite.c",
-			"base_template" : "satellite.c.cgen_template"
-		},
-		{
-			"filename" : "parameters.h"
-		},
-		{
-			"filename" : "parameters.c"
-		},
-		{
-			"filename" : "EPS.xml"
-		},
-		{
-			"filename" : "somefile",
-			"base_template" : "parameters.c.cgen_template",
-			"parameters" : [
-				testing_2,
-				testing_4
-			]
-		},
-		{
-			"filename" : "mainTemplate"
+			"filename" : "../examples/paramcommands",
+			"base_template" : "examples/paramcommands.cgen_template"
 		}
 	]
 }
