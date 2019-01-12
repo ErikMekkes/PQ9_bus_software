@@ -1,8 +1,4 @@
 0,testing_2,uint16_t,1000
 1,testing_4,uint32_t,0xCAFE
-2,SBSYS_sensor_loop,uint32_t,60000
-3,adb_sensor_status,uint8_t,0xDEAD
-4,adb_int_temp,uint16_t,12
-5,adb_deb,uint16_t, 4000
-6,SBSYS_reset_clr_int_wdg,uint32_t,8000
-7,SBSYS_reset_cmd_int_wdg,uint16_t,600
+2,sensor_1,uint16_t,0
+2,sensor_2,uint16_t,100

@@ -1,0 +1,2 @@
+// this is the set template for sensor_1
+p#name = 500;
