@@ -219,11 +219,48 @@ public class TemplateProcessor {
 			lineNumber++;
 			// fill in variables
 			String str = template.get(lineNumber);
+			String command;
+			int c_start, c_end;
+			//TODO : this can be done in a cleaner way
+			//TODO : should probably disallow '$' for variable definitions as well
+			// Make sure commands (anything between $$) remain unchanged by storing
+			// the original command in the line
+			c_start = str.indexOf('$');
+			if (-1 == c_start) {
+				// no starting $ found, not a command -> no additional action needed
+				command = null;
+			} else {
+				// need to parse what's in between $ characters...
+				c_start = c_start + 1;
+				c_end = str.indexOf('$', c_start);
+				if (-1 == c_end) {
+					command = null;
+				} else {
+					// found command in between $$ command identifiers -> execute command
+					command = str.substring(c_start, c_end);
+				}
+			}
+			
 			// loop through vars, if str contains var key replace with var value
 			for (String key : variables.keySet()) {
 				String value = variables.get(key);
 				str = str.replace(key, value);
 			}
+			
+			// restore the original command after filling in variables
+			if (command != null) {
+					c_start = str.indexOf('$');
+					if (-1 != c_start) {
+						// need to parse what's in between $ characters...
+						c_start = c_start + 1;
+						c_end = str.indexOf('$', c_start);
+						if (-1 != c_end) {
+							String temp = str.substring(c_start, c_end);
+							str = str.replace(temp,command);
+						}
+					}
+			}
+			
 			template.set(lineNumber, str);
 			
 			// check if line is a command
