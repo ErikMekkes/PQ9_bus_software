@@ -15,6 +15,13 @@ import java.util.HashMap;
  *
  * Includes methods to construct a parameter object from various inputs, as
  * well as a toString implementation.
+ *
+ * Use this class to change the available parameter keywords and how they're
+ * substituted, the addParamVariables and fillInParam functions below are used
+ * for substitution in templates.
+ *
+ * To change how parameters are loaded and for which files, see the Main Class
+ * To change when parameters are used, see the TemplateProcessor Class
  */
 public class Param {
 	public int id;
@@ -176,6 +183,7 @@ public class Param {
 	 * @param dataType
 	 *      The regular data type that should be converted/
 	 * @return
+	 *      The longer format of the specified dataType.
 	 */
 	private String convertToLongDataType(String dataType) {
 		switch (dataType) {
@@ -186,5 +194,58 @@ public class Param {
 			default :
 				return "";
 		}
+	}
+	
+	
+	/**
+	 * Specifies which parameter keywords exist and what they should be replaced
+	 * with. This is achieved by adding the parameter keywords as variables to be
+	 * filled in.
+	 *
+	 * @param vars
+	 *      Set of template variables to add parameter keywords to.
+	 */
+	void addParamVariables(HashMap<String, String> vars) {
+		vars.put("p#name", this.name);
+		vars.put("p#id", Integer.toString(this.id));
+		vars.put("p#enumName", this.enumName);
+		vars.put("p#dataType", this.dataType);
+		vars.put("p#defaultValue", this.defaultValue);
+		vars.put("p#dType", this.dType);
+		vars.put("p#hexId", this.hexId);
+	}
+	
+	/**
+	 * Fills in the values of this parameter for the parameter keywords in the
+	 * specified line.
+	 *
+	 * Defined parameter keywords that get replaced with values are:
+	 *  - p#name : replaced with name of parameter
+	 *  - p#id : replaced with enum integer identifier of parameter
+	 *  - p#enumName : replaced with name + '_param_id' suffix
+	 *  - p#dataType : replaced with data type of parameter
+	 *  - p#defaultValue : replaced with default value of parameter
+	 *
+	 * @param line
+	 *      Line String where parameter values should be filled in.
+	 * @return
+	 *      Line String with parameter keywords replaced with the values from
+	 *      the specified parameter.
+	 */
+	String fillInParam(String line) {
+		//TODO : it might be possible to remove this function.
+		//The p-line and p-template commands in TemplateProcessor need to be
+		//reworked to work through variables to make this removable.
+		
+		// replace parameter keywords with param values
+		line = line.replace("p#name", this.name);
+		line = line.replace("p#id", Integer.toString(this.id));
+		line = line.replace("p#enumName", this.enumName);
+		line = line.replace("p#dataType", this.dataType);
+		line = line.replace("p#defaultValue", this.defaultValue);
+		line = line.replace("p#dType", this.dType);
+		line = line.replace("p#hexId", this.hexId);
+		
+		return line;
 	}
 }

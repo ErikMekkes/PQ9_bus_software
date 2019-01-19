@@ -296,6 +296,31 @@ public class Utilities {
 	}
 	
 	/**
+	 * Returns the first match the pattern within the specified String. Starting
+	 * from the specified start index.
+	 *
+	 * @param str
+	 *      String to search.
+	 * @param pattern
+	 *      Pattern to look for.
+	 * @param startIndex
+	 *      Index in string to start looking.
+	 * @return
+	 *      Resulting string and it's position in the original string.
+	 */
+	static RegexResult firstMatch(String str, Pattern pattern, int startIndex) {
+		Matcher matcher = pattern.matcher(str);
+		if (matcher.find(startIndex)) {
+			int start = matcher.start();
+			int end = matcher.end();
+			String strRes = str.substring(start,end);
+			return new RegexResult(start, end, strRes);
+		} else {
+			return null;
+		}
+	}
+	
+	/**
 	 * Checks for mismatch in number of opening / closing braces. WARNING :
 	 * does not check if they were used in the correct place, only reports a
 	 * mismatched number.

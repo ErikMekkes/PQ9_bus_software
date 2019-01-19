@@ -42,7 +42,7 @@ void get_parameter(param_id pid, void *value, uint8_t *buf, uint16_t *size) {
 /*
  * Updates the local value to the specified value for the specified parameter id.
  */
-bool set_parameter(param_id pid, void* value) {{
+bool set_parameter(param_id pid, void* value) {
 	bool res = true;
 	switch (pid) {
 

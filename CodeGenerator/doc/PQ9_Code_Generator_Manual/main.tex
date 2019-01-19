@@ -29,7 +29,7 @@
 \chapter{About the Code Generator}
 The PQ9 Code Generator is a template system that is specifically written for generating PQ9 Subsystem software. The goal is to provide a program that makes the subsystem software accessible to those without in-depth understanding of either the PQ9 software structure or the subsystem specific hardware code by generating the code from templates and parameters. 
 
-\vsp The Code Generator comes with a custom template format, for which a number of commands and keywords have been defined to make the templates very versatile. The templates and Code Generator can be used for any application that benefits from templates and parameters. The generator is originally intended to use templates that produce code in the c programming language for use within the PQ9 system, but the Code Generator doesn't explicitly require this. Technically any text or code language should be accepted by the the code generator as a valid template, as long as the template contents don't conflict with the pre-defined template commands and keywords (See chapter \ref{wwtemp}).
+\vsp The Code Generator comes with a custom template format, for which a number of commands and keywords have been defined to make the templates very versatile. The templates and Code Generator can be used for any application that benefits from templates and parameters. The generator is originally intended to use templates that produce code in the C programming language for use within the PQ9 system, but the Code Generator doesn't explicitly require this. Technically any text or code language should be accepted by the the code generator as a valid template, as long as the template contents don't conflict with the pre-defined template commands and keywords (See chapter \ref{wwtemp}).
 
 \vsp The intended use is to provide a standard code structure that is shared among hardware within the PQ9 system. This structure can be represented as a set of base templates for a PQ9 subsystem. Subsystem experts can then be asked to fill in the subsystem specific code sections of these templates for their subsystems. An extra burden is placed on the subsystem experts by further asking them to define their code in terms of subsystem parameters, for as much as such a request is possible. Thus producing a subsystem specific set of templates and parameters, which when run through the Code Generator produce fully functional subsystem software for the specified parameters.
 
@@ -217,7 +217,23 @@ The \Colorbox{backcolour}{\lstinline{$var$}} command is used to define a templat
 
 \vsp The variable name must be followed by a single space character, anything following this single space character is accepted as a value for the variable, as long as it is on the same line. For example the word \Colorbox{backcolour}{\lstinline{bar}} or the number \Colorbox{backcolour}{\lstinline{4}} is an accepted value, but so is \Colorbox{backcolour}{\lstinline{*((uint32_t*)value)}} or \Colorbox{backcolour}{\lstinline{I actually want to replace foo_var with this entire sentence}}.
 
-\vsp Variables only affect the remainder of the template after their definition. For a full example of the effect and possible uses, see example \ref{ex1}.
+\vsp Variables only affect the remainder of the template after their definition. For a full example of the effect and possible uses, see example \ref{ex1}. Additionally, template commands aren't effected by variables.
+
+\paragraph{Import variables from file} The \Colorbox{backcolour}{\lstinline{$vars$}} command is available in addition to the \Colorbox{backcolour}{\lstinline{$var$}} command. It allows a template file containing variable name and value pairs to be specified. The variables are then loaded for the current template:
+
+\begin{lstlisting}
+ $vars$ variables.cgen_template
+\end{lstlisting}
+
+It is assumed that the content of the template file consists only of variable name and value pairs:
+
+\begin{lstlisting}[caption={variables.cgen\_template}]
+\{variable_name_1\} variable_value_1
+\{variable_name_2\} variable_value_2
+\{variable_name_3\} variable_value_3
+...
+\end{lstlisting}
+
 
 \subsection{Subtemplates}
 The \Colorbox{backcolour}{\lstinline{$template$}} command is used to include another template in the current template, the format is as follows:
@@ -231,7 +247,6 @@ It is possible to redefine existing variables in a sub-template with a different
 
 Template processing is performed recursively, sub-templates may again contain commands and thus may define further sub-templates and so on.
 
-\newpage
 \section{Parameter Processing Commands} \label{p-commands}
 These commands can be used to process a template section for a specified set of parameters. Along with the command itself a list of parameters is specified, the command is executed once for each parameter in that list. 
 
