@@ -16,6 +16,10 @@
 		{
 			"filename" : "../examples/paramcommands",
 			"base_template" : "examples/paramcommands.cgen_template"
+		},
+		{
+			"filename" : "../examples/morse",
+			"base_template" : "examples/morse.cgen_template"
 		}
 	]
 }

@@ -10,10 +10,19 @@ import org.json.JSONObject;
 
 /**
  * Main program, starting point for executable jar file.
+ *
+ * In this class:
+ * - Handling of settings file
+ * - Handling of parameters file
+ * - Creation of directories and files
+ * - Starting base template processing for each file from settings
+ *
+ * To change template processing behaviour, see TemplateProcessor.java
  */
 public class Main {
 	// Program defaults
 	private static final String TEMPLATE_EXTENSION = ".cgen_template";
+	private static final String TEMPLATE_EXTENSION_REGEX = "\\.cgen_template";
 	private static final String TEMPLATE_DIR = "templates/";
 	private static final String SETTINGS_FILE = "settings.json";
 	// main parameter file location
@@ -281,7 +290,7 @@ public class Main {
 	 */
 	private static void makeFiles() {
 		TemplateProcessor tProc = new TemplateProcessor(subSysName, TEMPLATE_DIR,
-						TEMPLATE_EXTENSION, continue_indentation, overwrite_existing);
+						TEMPLATE_EXTENSION_REGEX, continue_indentation, overwrite_existing);
 		files.forEach((fileName,baseTemplate) -> {
 			Utilities.log("\nProcessing file : " + fileName);
 			Map<String, Param> pars = fileParams.get(fileName);

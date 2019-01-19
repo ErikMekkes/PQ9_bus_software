@@ -1,0 +1,10 @@
+//< This is a fun example of a morse translator!
+//< It also shows the use of the 4vars$ command.
+//<
+// Everything after the included morse variables is translated!
+//< Use $vars$ to include multiple variables from another file.
+$vars$ templates/examples/morsevars.cgen_template
+//<
+//< The variables are now available for this template,
+//< translating everything written down into morse!
+hello my name is erik mekkes
